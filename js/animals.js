@@ -1,139 +1,186 @@
 'use strict';
 // ---------------------------------------------------------------------------
-// Wildmask — animals.js : species, builders, field AI, zoo residents & guests
+// Wildmask — animals.js : species table (19), field AI, zoo residents, guests
 // ---------------------------------------------------------------------------
+// tiers: 1 = common (quick study), 2 = uncommon, 3 = rare/strong (long study)
+// aggressive species defend themselves; defeating one drops an ingredient.
 
-// ----- species table -----
 G.SPECIES = {
-  horse: {
-    name: 'Horse', emoji: '🐴', count: 5, speed: 3.2, fleeSpeed: 9,
-    wary: 11, studyR: 9, needSmall: false,
-    traits: 'Gallop: sprint at incredible speed with endless stamina.',
-    hint: 'Grazes in the open plains. Skittish — crouch and approach slowly.',
-    place: s => s.biome === 'plains' && s.h > 1 && s.h < 4.8
+  // ---------- tier 1 ----------
+  fox: {
+    name: 'Fox', emoji: '🦊', zone: 'forest', tier: 1, studyNeed: 60,
+    count: 4, speed: 3.4, fleeSpeed: 8, wary: 8, studyR: 8,
+    traits: 'Dash Strike [F]: lightning lunge. Full-speed stealth inside bushes.',
+    hint: 'Tia\'s pick for your first study — prowls the forest edge near camp.',
+    ingredient: 'fox meat',
+    place: s => s.biome === 'forest' && s.h > 0.8
   },
-  frog: {
-    name: 'Frog', emoji: '🐸', count: 6, speed: 1.6, fleeSpeed: 4.5, hop: true,
-    wary: 6, studyR: 6, needSmall: false,
-    traits: 'Spring Legs: jump sky-high. Power Kick [F]: smash cracked boulders.',
-    hint: 'Lives at pond and swamp shorelines.',
-    place: s => (s.biome === 'plains' || s.biome === 'swamp') && s.h > 0.15 && s.h < 1.0
-  },
-  croc: {
-    name: 'Crocodile', emoji: '🐊', count: 4, speed: 1.4, fleeSpeed: 0, aggro: true,
-    wary: 0, studyR: 9, needSmall: false,
-    traits: 'Amphibian: swim fast, near-endless breath, still walks on land.',
-    hint: 'Lurks in swamp water. Study it from dry land — it bites swimmers!',
-    place: s => s.biome === 'swamp' && s.h < 0.2
-  },
-  mouse: {
-    name: 'Mouse', emoji: '🐭', count: 6, speed: 2.2, fleeSpeed: 6.5,
-    wary: 8, studyR: 5, needSmall: false, tiny: 0.45,
-    traits: 'Shrink: become tiny — study small creatures, squeeze into burrows.',
-    hint: 'Scurries around the plains. Very wary; sneak up crouched.',
+  rabbit: {
+    name: 'Rabbit', emoji: '🐰', zone: 'plains', tier: 1, studyNeed: 80,
+    count: 5, speed: 2.6, fleeSpeed: 7.5, wary: 9, studyR: 6, hop: true,
+    traits: 'Double Jump: kick off thin air. Quick, weak kicks in a scrap.',
+    hint: 'Bounces around the open plains.',
+    ingredient: 'rabbit meat',
     place: s => s.biome === 'plains' && s.h > 0.8
   },
+  deer: {
+    name: 'Deer', emoji: '🦌', zone: 'forest', tier: 1, studyNeed: 90,
+    count: 4, speed: 3.2, fleeSpeed: 9.5, wary: 12, studyR: 9,
+    traits: 'Bounding Stride: long graceful leaps. Antler Charge knocks foes flat.',
+    hint: 'Grazes between the forest trees. Extremely alert.',
+    ingredient: 'venison',
+    place: s => s.biome === 'forest' && s.h > 0.8
+  },
+  frog: {
+    name: 'Frog', emoji: '🐸', zone: 'wetland', tier: 1, studyNeed: 80,
+    count: 5, speed: 1.6, fleeSpeed: 4.5, hop: true, wary: 6, studyR: 6,
+    traits: 'Spring Legs: jump sky-high. Power Kick [F] smashes cracked boulders.',
+    hint: 'Lives at pond and swamp shorelines.',
+    ingredient: 'frog legs',
+    place: s => (s.biome === 'plains' || s.biome === 'swamp') && s.h > 0.15 && s.h < 1.0
+  },
+  horse: {
+    name: 'Horse', emoji: '🐴', zone: 'plains', tier: 1, studyNeed: 100,
+    count: 4, speed: 3.2, fleeSpeed: 9, wary: 11, studyR: 9,
+    traits: 'Gallop: sprint at incredible speed with endless stamina. Trample kick.',
+    hint: 'Grazes in the open plains. Skittish — crouch and approach slowly.',
+    ingredient: 'oat bundle',
+    place: s => s.biome === 'plains' && s.h > 1 && s.h < 4.8
+  },
+  // ---------- tier 2 ----------
+  mouse: {
+    name: 'Mouse', emoji: '🐭', zone: 'plains', tier: 2, studyNeed: 120,
+    count: 5, speed: 2.2, fleeSpeed: 6.5, wary: 8, studyR: 5, tiny: 0.45,
+    traits: 'Shrink: become tiny — study small creatures, squeeze into burrows.',
+    hint: 'Scurries around the plains. Very wary; sneak up crouched.',
+    ingredient: 'wild grain',
+    place: s => s.biome === 'plains' && s.h > 0.8
+  },
+  tortoise: {
+    name: 'Tortoise', emoji: '🐢', zone: 'wetland', tier: 2, studyNeed: 150,
+    count: 3, speed: 0.7, fleeSpeed: 1.2, wary: 3, studyR: 6,
+    traits: 'Shell Guard: crouch to block almost all damage. Heavy shell bash.',
+    hint: 'Trundles along sunny shorelines. Not in a hurry.',
+    ingredient: 'shore greens',
+    place: s => s.biome !== 'swamp' && s.h > 0.15 && s.h < 0.9
+  },
+  otter: {
+    name: 'Otter', emoji: '🦦', zone: 'wetland', tier: 2, studyNeed: 150,
+    count: 3, speed: 2.4, fleeSpeed: 6, wary: 7, studyR: 7,
+    traits: 'River King: swim fast and slippery. Rapid paw combo.',
+    hint: 'Plays near ponds and river mouths.',
+    ingredient: 'fresh fish',
+    place: s => s.biome !== 'desert' && s.h > 0.1 && s.h < 0.8
+  },
+  cobra: {
+    name: 'Cobra', emoji: '🐍', zone: 'desert', tier: 2, studyNeed: 170,
+    count: 4, speed: 1.6, fleeSpeed: 0, wary: 0, studyR: 8,
+    aggressive: { hp: 5, dmg: 1, aggroR: 3, atkR: 1.6, atkCd: 1.4 },
+    traits: 'Venom Spit [F]: ranged poison glob that stuns.',
+    hint: 'Coiled in the hot sand. Strikes anyone who steps too close.',
+    ingredient: 'cobra fillet',
+    place: s => s.biome === 'desert' && s.h > 1.0
+  },
+  monkey: {
+    name: 'Monkey', emoji: '🐒', zone: 'forest', tier: 2, studyNeed: 150,
+    count: 4, speed: 3.0, fleeSpeed: 7, wary: 8, studyR: 8,
+    traits: 'Fruit Fling [F]: ranged thrown fruit. Springy climber\'s jump.',
+    hint: 'Chatters in the deep forest.',
+    ingredient: 'jungle fruit',
+    place: s => s.biome === 'forest' && s.h > 1.0
+  },
+  goat: {
+    name: 'Mountain Goat', emoji: '🐐', zone: 'highland', tier: 2, studyNeed: 170,
+    count: 3, speed: 2.6, fleeSpeed: 7, wary: 8, studyR: 8,
+    traits: 'Sure Hooves: walk straight up cliffs and terraces. Skull-ringing ram.',
+    hint: 'Perches on the rocky terraces. Follow it up if you can.',
+    ingredient: 'goat cheese',
+    place: s => s.biome === 'rock' && s.h > 4.5
+  },
+  armadillo: {
+    name: 'Armadillo', emoji: '🛡️', zone: 'desert', tier: 2, studyNeed: 150,
+    count: 3, speed: 1.8, fleeSpeed: 6.5, wary: 6, studyR: 6,
+    traits: 'Roll Out: sprint becomes an armored cannonball roll.',
+    hint: 'Snuffles between the cacti.',
+    ingredient: 'root veggies',
+    place: s => s.biome === 'desert' && s.h > 1.0
+  },
+  owl: {
+    name: 'Owl', emoji: '🦉', zone: 'forest', tier: 2, studyNeed: 180,
+    count: 3, speed: 2.0, fleeSpeed: 8, wary: 10, studyR: 8, nocturnal: true,
+    traits: 'Night Wings: glide on the wind and see clearly in the dark.',
+    hint: 'Only appears after sundown, deep in the forest.',
+    ingredient: 'forest herbs',
+    place: s => s.biome === 'forest' && s.h > 1.0
+  },
   scorpion: {
-    name: 'Scorpion', emoji: '🦂', count: 6, speed: 1.1, fleeSpeed: 3, stinger: true,
-    wary: 2.6, studyR: 3.5, needSmall: true, tiny: 0.4,
+    name: 'Scorpion', emoji: '🦂', zone: 'desert', tier: 2, studyNeed: 170,
+    count: 5, speed: 1.1, fleeSpeed: 3, wary: 2.6, studyR: 3.5,
+    needSmall: true, tiny: 0.4, stinger: true,
     traits: 'Venom Claws [F]: stun creatures. Wall Crawl: scale sheer cliffs. Tiny size.',
     hint: 'Too small to observe... shrink down with the Mouse Mask first.',
+    ingredient: 'chili pepper',
     place: s => s.biome === 'desert' && s.h > 1.2
+  },
+  croc: {
+    name: 'Crocodile', emoji: '🐊', zone: 'wetland', tier: 2, studyNeed: 170,
+    count: 4, speed: 1.4, fleeSpeed: 0, wary: 0, studyR: 9,
+    aggressive: { hp: 10, dmg: 2, aggroR: 11, atkR: 1.6, atkCd: 1.3, waterOnly: true },
+    traits: 'Amphibian: swim fast, near-endless breath. Vice-grip bite.',
+    hint: 'Lurks in swamp water. Study it from dry land — it bites swimmers!',
+    ingredient: 'croc tail cut',
+    place: s => s.biome === 'swamp' && s.h < 0.2
+  },
+  // ---------- tier 3 ----------
+  wolf: {
+    name: 'Wolf', emoji: '🐺', zone: 'forest', tier: 3, studyNeed: 240,
+    count: 3, speed: 3.4, fleeSpeed: 0, wary: 0, studyR: 9, nocturnal: true,
+    aggressive: { hp: 8, dmg: 2, aggroR: 9, atkR: 1.7, atkCd: 1.1 },
+    traits: 'Moon Runner: tireless sprint. Howl [V] scatters poachers in terror.',
+    hint: 'Hunts the forest at night. It will find you first.',
+    ingredient: 'wolf meat',
+    place: s => s.biome === 'forest' && s.h > 1.0
+  },
+  eagle: {
+    name: 'Eagle', emoji: '🦅', zone: 'highland', tier: 3, studyNeed: 240,
+    count: 2, speed: 2.2, fleeSpeed: 11, wary: 14, studyR: 10,
+    traits: 'Sky Lord: glide from any height; attack mid-air to dive-bomb.',
+    hint: 'Roosts on mesa tops and high crags. Approach from above... somehow.',
+    ingredient: 'giant egg',
+    place: s => (s.biome === 'desert' && s.h > 9) || (s.biome === 'rock' && s.h > 8)
+  },
+  bear: {
+    name: 'Bear', emoji: '🐻', zone: 'forest', tier: 3, studyNeed: 260,
+    count: 2, speed: 2.4, fleeSpeed: 0, wary: 0, studyR: 10,
+    aggressive: { hp: 14, dmg: 3, aggroR: 7, atkR: 2.1, atkCd: 1.5 },
+    traits: 'Juggernaut: massive swipes with huge knockback; smash boulders bare-handed.',
+    hint: 'The forest\'s heavyweight. Keep your distance while it\'s grumpy.',
+    ingredient: 'bear shank',
+    place: s => s.biome === 'forest' && s.h > 1.2
+  },
+  badger: {
+    name: 'Honey Badger', emoji: '🦡', zone: 'desert', tier: 3, studyNeed: 320,
+    count: 2, speed: 2.8, fleeSpeed: 0, wary: 0, studyR: 9,
+    aggressive: { hp: 16, dmg: 2, aggroR: 6, atkR: 1.6, atkCd: 0.7 },
+    traits: 'Fear Nothing: blinding flurry of claws, iron hide, immune to venom.',
+    hint: 'Rare, fearless, and famously does not care. The hardest study on the island.',
+    ingredient: 'honeycomb',
+    place: s => s.biome === 'desert' && s.h > 1.0
   }
 };
+G.MASK_ORDER = Object.keys(G.SPECIES);
 
-// ----- cute low-poly builders -----
-const B = {};
-B.horse = function () {
-  const g = new THREE.Group(), S = G.geo.sphere, C = G.geo.cyl, X = G.geo.box;
-  G.part(g, S, 0xb07845, 0, 1.05, 0, 0.62, 0.58, 1.0);                 // body
-  const head = G.part(g, S, 0xb07845, 0, 1.7, 0.95, 0.42, 0.42, 0.45); // head
-  G.part(head, X, 0x8f5f36, 0, -0.12, 0.75, 0.55, 0.55, 0.8);          // snout
-  G.part(head, S, 0x1c1c1c, 0.3, 0.18, 0.92, 0.1);                     // eyes
-  G.part(head, S, 0x1c1c1c, -0.3, 0.18, 0.92, 0.1);
-  G.part(head, G.geo.cone, 0x8f5f36, 0.22, 0.52, -0.1, 0.14, 0.4, 0.14);
-  G.part(head, G.geo.cone, 0x8f5f36, -0.22, 0.52, -0.1, 0.14, 0.4, 0.14);
-  G.part(g, X, 0x5c4326, 0, 1.55, 0.3, 0.16, 0.6, 1.1);                // mane
-  const tail = G.part(g, S, 0x5c4326, 0, 1.15, -1.05, 0.16, 0.45, 0.16);
-  tail.rotation.x = 0.6;
-  for (const sx of [-0.32, 0.32]) for (const sz of [-0.6, 0.62])
-    G.part(g, C, 0x8f5f36, sx, 0.42, sz, 0.13, 0.85, 0.13);
-  return g;
+const SCALES = {
+  horse: 1, frog: 0.5, croc: 1, mouse: 0.42, scorpion: 0.34,
+  fox: 0.8, rabbit: 0.55, deer: 1, tortoise: 0.6, otter: 0.6,
+  cobra: 0.7, monkey: 0.65, goat: 0.95, armadillo: 0.6, owl: 0.55,
+  wolf: 0.95, eagle: 0.7, bear: 1.15, badger: 0.7
 };
-B.frog = function () {
-  const g = new THREE.Group(), S = G.geo.sphere;
-  G.part(g, S, 0x62b64e, 0, 0.32, 0, 0.42, 0.32, 0.42);                // body
-  G.part(g, S, 0xd8eec2, 0, 0.22, 0.24, 0.28, 0.2, 0.2);               // belly
-  const e1 = G.part(g, S, 0x62b64e, 0.18, 0.62, 0.12, 0.13);           // eye mounts
-  const e2 = G.part(g, S, 0x62b64e, -0.18, 0.62, 0.12, 0.13);
-  G.part(e1, S, 0x1c1c1c, 0, 0.25, 0.45, 0.45);
-  G.part(e2, S, 0x1c1c1c, 0, 0.25, 0.45, 0.45);
-  G.part(g, S, 0x4c9440, 0.3, 0.14, -0.12, 0.18, 0.12, 0.28);          // legs
-  G.part(g, S, 0x4c9440, -0.3, 0.14, -0.12, 0.18, 0.12, 0.28);
-  return g;
-};
-B.croc = function () {
-  const g = new THREE.Group(), S = G.geo.sphere, X = G.geo.box;
-  G.part(g, S, 0x5d8c46, 0, 0.5, 0, 0.55, 0.4, 1.15);                  // body
-  const head = G.part(g, S, 0x5d8c46, 0, 0.6, 1.2, 0.38, 0.3, 0.45);
-  G.part(head, X, 0x6f9e55, 0, -0.15, 0.9, 0.75, 0.42, 1.3);           // snout
-  G.part(head, X, 0xf5f2e3, 0, -0.42, 0.9, 0.68, 0.12, 1.2);           // teeth strip
-  G.part(head, S, 0xf7d83b, 0.22, 0.28, 0.25, 0.11);                   // eyes
-  G.part(head, S, 0xf7d83b, -0.22, 0.28, 0.25, 0.11);
-  const tail = G.part(g, G.geo.cone, 0x527c3e, 0, 0.45, -1.55, 0.32, 1.4, 0.32);
-  tail.rotation.x = -Math.PI / 2;
-  for (let i = 0; i < 4; i++) G.part(g, G.geo.cone, 0x3f6330, 0, 0.95 - i * 0.06, 0.35 - i * 0.5, 0.13, 0.3, 0.13);
-  for (const sx of [-0.5, 0.5]) for (const sz of [-0.5, 0.6])
-    G.part(g, S, 0x527c3e, sx, 0.2, sz, 0.16, 0.2, 0.16);
-  return g;
-};
-B.mouse = function () {
-  const g = new THREE.Group(), S = G.geo.sphere;
-  G.part(g, S, 0xa8a29c, 0, 0.22, 0, 0.24, 0.2, 0.3);                  // body
-  const head = G.part(g, S, 0xa8a29c, 0, 0.32, 0.26, 0.17);
-  G.part(head, S, 0xf0b9c4, 0, -0.1, 0.85, 0.3);                       // nose
-  G.part(head, S, 0x1c1c1c, 0.42, 0.25, 0.85, 0.14);
-  G.part(head, S, 0x1c1c1c, -0.42, 0.25, 0.85, 0.14);
-  G.part(head, S, 0xd9a7b2, 0.7, 0.9, -0.2, 0.55, 0.55, 0.2);          // ears
-  G.part(head, S, 0xd9a7b2, -0.7, 0.9, -0.2, 0.55, 0.55, 0.2);
-  const tail = G.part(g, G.geo.cyl, 0xd9a7b2, 0, 0.16, -0.42, 0.03, 0.5, 0.03);
-  tail.rotation.x = 1.2;
-  return g;
-};
-B.scorpion = function () {
-  const g = new THREE.Group(), S = G.geo.sphere;
-  const bodyCol = 0x8c3b26;
-  G.part(g, S, bodyCol, 0, 0.18, 0, 0.26, 0.16, 0.34);                 // body
-  G.part(g, S, bodyCol, 0, 0.2, 0.3, 0.18, 0.14, 0.18);                // head
-  G.part(g, S, 0x1c1c1c, 0.07, 0.3, 0.45, 0.05);                       // eyes
-  G.part(g, S, 0x1c1c1c, -0.07, 0.3, 0.45, 0.05);
-  // claws
-  for (const sx of [-0.3, 0.3]) {
-    const arm = G.part(g, S, 0x6d2c1b, sx, 0.16, 0.42, 0.13, 0.1, 0.2);
-    G.part(arm, S, 0x6d2c1b, sx > 0 ? 0.4 : -0.4, 0.2, 0.9, 0.9, 0.7, 0.9);
-  }
-  // tail arc
-  let ty = 0.3, tz = -0.3;
-  for (let i = 0; i < 3; i++) {
-    G.part(g, S, bodyCol, 0, ty, tz, 0.1 - i * 0.015);
-    ty += 0.14; tz -= 0.06;
-  }
-  const sting = G.part(g, G.geo.cone, 0x3a1810, 0, ty + 0.08, tz + 0.08, 0.07, 0.2, 0.07);
-  sting.rotation.x = 2.6;
-  // legs
-  for (const sx of [-0.28, 0.28]) for (let i = 0; i < 3; i++)
-    G.part(g, G.geo.cyl, 0x6d2c1b, sx, 0.08, -0.15 + i * 0.16, 0.03, 0.18, 0.03);
-  return g;
-};
-G.buildAnimalMesh = function (key, scale) {
-  const m = B[key]();
-  m.scale.setScalar(scale);
-  return m;
-};
+G.SPECIES_SCALE = SCALES;
 
-// ----- field animal -----
-const SCALES = { horse: 1, frog: 0.5, croc: 1, mouse: 0.42, scorpion: 0.34 };
-
+// ---------------------------------------------------------------------------
+// field animal
+// ---------------------------------------------------------------------------
 class Animal {
   constructor(key, x, z) {
     this.key = key;
@@ -146,11 +193,14 @@ class Animal {
     this.timer = Math.random() * 3;
     this.target = new THREE.Vector2(x, z);
     this.stun = 0;
+    this.fear = 0;
     this.biteCd = 0;
     this.bob = Math.random() * 9;
     this.alive = true;
+    this.caged = false;
+    this.hp = this.sp.aggressive ? this.sp.aggressive.hp : 0;
   }
-  retarget(rand) {
+  retarget() {
     for (let i = 0; i < 8; i++) {
       const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 10;
       const tx = this.home.x + Math.cos(a) * r, tz = this.home.y + Math.sin(a) * r;
@@ -158,8 +208,32 @@ class Animal {
     }
     this.target.set(this.home.x, this.home.y);
   }
+  hurt(dmg, kbDir, kb) {
+    if (!this.sp.aggressive) { // peaceful animals just get knocked about
+      this.stun = Math.max(this.stun, 1.0);
+      if (kbDir) { this.pos.x += kbDir.x * (kb || 2); this.pos.z += kbDir.z * (kb || 2); }
+      return false;
+    }
+    this.hp -= dmg;
+    this.stun = Math.max(this.stun, 0.25);
+    if (kbDir) { this.pos.x += kbDir.x * (kb || 1.5); this.pos.z += kbDir.z * (kb || 1.5); }
+    G.ui.popup('-' + dmg, this.pos);
+    if (this.hp <= 0) {
+      this.alive = false;
+      this.mesh.visible = false;
+      G.spawnDrop(G.scene, this.pos.x, this.pos.z, 'ingredient', this.key);
+      G.toast('The ' + this.sp.name.toLowerCase() + ' is subdued. It dropped ' + this.sp.ingredient + ' — Montana can cook that.');
+      G.respawnQueue.push({ key: this.key, t: 120 });
+      if (G.quest && G.quest.onAnimalDefeat) G.quest.onAnimalDefeat(this.key);
+      return true;
+    }
+    return false;
+  }
   update(dt, player) {
-    if (!this.alive) return;
+    if (!this.alive || this.caged) return;
+    // nocturnal creatures only exist after dark
+    if (this.sp.nocturnal && !G.isNight) { this.mesh.visible = false; return; }
+    this.mesh.visible = true;
     this.bob += dt;
     if (this.stun > 0) {
       this.stun -= dt;
@@ -168,23 +242,27 @@ class Animal {
       this.settleY(dt);
       return;
     }
+    if (this.fear > 0) this.fear -= dt;
     const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
-    const dist = Math.hypot(dx, dz);
+    let dist = Math.hypot(dx, dz);
+    if (player.hidden) dist *= 3; // stealth: you read as much farther away
 
-    // crocodile aggression: chases anything swimming nearby (unless croc-masked kin)
-    if (this.sp.aggro) {
-      const kin = player.mask === 'croc';
-      if (!kin && player.swimming && dist < 11) this.state = 'chase';
-      else if (this.state === 'chase') this.state = 'idle';
+    // -- aggression --
+    const ag = this.sp.aggressive;
+    if (ag && this.fear <= 0) {
+      const kin = (this.key === 'croc' && player.mask === 'croc');
+      const validTarget = ag.waterOnly ? player.swimming : !player.hidden;
+      if (!kin && validTarget && dist < ag.aggroR) this.state = 'chase';
+      else if (this.state === 'chase' && dist > ag.aggroR * 2.2) this.state = 'idle';
       if (this.state === 'chase') {
-        const sp = 5.2;
-        this.pos.x += dx / dist * sp * dt;
-        this.pos.z += dz / dist * sp * dt;
+        const d = Math.hypot(dx, dz) || 1;
+        const sp = this.sp.speed * 2.2;
+        this.move(dx / d * sp * dt, dz / d * sp * dt);
         this.face(dx, dz, dt);
         this.biteCd -= dt;
-        if (dist < 1.6 && this.biteCd <= 0) {
-          this.biteCd = 1.3;
-          G.hurtPlayer(2, this.pos);
+        if (d < ag.atkR && this.biteCd <= 0) {
+          this.biteCd = ag.atkCd;
+          G.hurtPlayer(ag.dmg, this.pos);
         }
         this.settleY(dt);
         return;
@@ -192,28 +270,26 @@ class Animal {
     }
 
     // scorpion sting: only threatens a shrunken player
-    if (this.sp.stinger && player.small && player.mask !== 'scorpion' && dist < 1.4) {
+    if (this.sp.stinger && player.small && player.mask !== 'scorpion' && player.mask !== 'badger' && dist < 1.4) {
       this.biteCd -= dt;
       if (this.biteCd <= 0) { this.biteCd = 1.5; G.hurtPlayer(1, this.pos); G.sfx.sting(); }
     }
 
-    // wariness: crouching and being tiny make you less scary
+    // -- wariness --
     let threat = this.sp.wary;
     if (player.crouch) threat *= 0.55;
     if (player.small) threat *= 0.6;
     if (G.meta.upg.boots) threat *= 0.7;
-    if (this.sp.fleeSpeed > 0 && dist < threat && this.state !== 'flee') {
-      this.state = 'flee';
-      this.timer = 2.5;
+    if ((this.sp.fleeSpeed > 0 && dist < threat && this.state !== 'flee') || this.fear > 0) {
+      if (this.sp.fleeSpeed > 0) { this.state = 'flee'; this.timer = 2.5; }
     }
 
     if (this.state === 'flee') {
       this.timer -= dt;
-      const sp = this.sp.fleeSpeed;
-      if (dist > 0.1) {
-        this.move(-dx / dist * sp * dt, -dz / dist * sp * dt);
-        this.face(-dx, -dz, dt);
-      }
+      const sp = this.sp.fleeSpeed || this.sp.speed * 2;
+      const d = Math.hypot(dx, dz) || 1;
+      this.move(-dx / d * sp * dt, -dz / d * sp * dt);
+      this.face(-dx, -dz, dt);
       if (this.timer <= 0) this.state = 'idle';
     } else if (this.state === 'walk') {
       const tx = this.target.x - this.pos.x, tz = this.target.y - this.pos.z;
@@ -224,7 +300,7 @@ class Animal {
         this.move(tx / td * sp * dt, tz / td * sp * dt);
         this.face(tx, tz, dt);
       }
-    } else { // idle
+    } else {
       this.timer -= dt;
       if (this.timer <= 0) { this.retarget(); this.state = 'walk'; }
     }
@@ -233,7 +309,6 @@ class Animal {
   move(mx, mz) {
     const nx = this.pos.x + mx, nz = this.pos.z + mz;
     const smp = G.sample(nx, nz);
-    // stay out of deep water unless croc; stay in roughly-valid ground
     if (this.key !== 'croc' && smp.h < G.WATER_Y - 0.3) { this.state = 'idle'; this.timer = 0.5; return; }
     if (Math.hypot(nx, nz) > G.RADIUS - 4) { this.state = 'idle'; return; }
     this.pos.x = nx; this.pos.z = nz;
@@ -248,23 +323,30 @@ class Animal {
   settleY(dt) {
     const ground = G.heightAt(this.pos.x, this.pos.z);
     let y = ground;
-    if (this.key === 'croc' && ground < G.WATER_Y - 0.2) y = G.WATER_Y - 0.35; // buoyant
-    // hop bounce for frogs, gentle bob for others while moving
+    if (this.key === 'croc' && ground < G.WATER_Y - 0.2) y = G.WATER_Y - 0.35;
     if (this.sp.hop && this.state !== 'idle') y += Math.abs(Math.sin(this.bob * 6)) * 0.5;
-    else if (this.state === 'walk' || this.state === 'flee' || this.state === 'chase')
+    else if (this.state !== 'idle')
       y += Math.abs(Math.sin(this.bob * 10)) * 0.06;
     this.pos.y += (y - this.pos.y) * Math.min(1, dt * 12);
   }
 }
+G.Animal = Animal;
 
 G.animals = [];
+G.respawnQueue = [];
+G.spawnAnimalAt = function (key, x, z) {
+  const an = new Animal(key, x, z);
+  G.scene.add(an.mesh);
+  G.animals.push(an);
+  return an;
+};
 G.spawnAnimals = function (scene) {
   const rand = G.mulberry(G.seed + 1234);
   for (const key in G.SPECIES) {
     const sp = G.SPECIES[key];
     let placed = 0, tries = 0;
-    while (placed < sp.count && tries++ < 900) {
-      const a = rand() * Math.PI * 2, r = 35 + rand() * 175;
+    while (placed < sp.count && tries++ < 1200) {
+      const a = rand() * Math.PI * 2, r = 40 + rand() * 170;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
       if (!sp.place(G.sample(x, z))) continue;
       const an = new Animal(key, x, z);
@@ -273,58 +355,100 @@ G.spawnAnimals = function (scene) {
       placed++;
     }
   }
+  // tutorial fox: guaranteed, close to camp, half as wary
+  let fx = 0, fz = 0, found = false;
+  for (let r = 30; r < 120 && !found; r += 4) for (let a = 0; a < 6.28; a += 0.25) {
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (G.SPECIES.fox.place(G.sample(x, z))) { fx = x; fz = z; found = true; break; }
+  }
+  if (found) {
+    const tut = new Animal('fox', fx, fz);
+    tut.tutorial = true;
+    scene.add(tut.mesh);
+    G.animals.push(tut);
+    G.tutorialFox = tut;
+  }
+};
+G.tickRespawns = function (dt) {
+  for (let i = G.respawnQueue.length - 1; i >= 0; i--) {
+    const r = G.respawnQueue[i];
+    r.t -= dt;
+    if (r.t > 0) continue;
+    G.respawnQueue.splice(i, 1);
+    const rand = Math.random;
+    for (let tries = 0; tries < 300; tries++) {
+      const a = rand() * Math.PI * 2, rr = 60 + rand() * 150;
+      const x = Math.cos(a) * rr, z = Math.sin(a) * rr;
+      if (G.SPECIES[r.key].place(G.sample(x, z))) { G.spawnAnimalAt(r.key, x, z); break; }
+    }
+  }
 };
 
-// ----- zoo residents (fully studied species live at camp) -----
+// fear pulse (wolf howl): scatter animals + poachers
+G.fearPulse = function (pos, radius) {
+  for (const a of G.animals) {
+    if (!a.alive || a.caged) continue;
+    if (Math.hypot(a.pos.x - pos.x, a.pos.z - pos.z) < radius) {
+      a.fear = 5; a.state = a.sp.fleeSpeed > 0 ? 'flee' : 'idle'; a.timer = 4;
+    }
+  }
+  if (G.poachers) for (const p of G.poachers) {
+    if (p.state === 'ko') continue;
+    if (Math.hypot(p.pos.x - pos.x, p.pos.z - pos.z) < radius) p.frighten(6);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// zoo residents live inside their themed enclosure zone
+// ---------------------------------------------------------------------------
 G.zooResidents = [];
 G.addZooResident = function (scene, key) {
-  const pen = G.pens.find(p => p.species === key);
-  if (!pen || pen.resident) return;
-  const m = G.buildAnimalMesh(key, SCALES[key] * (key === 'horse' || key === 'croc' ? 0.8 : 1));
-  m.position.set(pen.x, G.heightAt(pen.x, pen.z), pen.z);
+  const sp = G.SPECIES[key];
+  const zone = G.zones.find(z => z.id === sp.zone);
+  if (!zone || zone.residents.some(r => r.key === key)) return;
+  const m = G.buildAnimalMesh(key, SCALES[key] * 0.85);
+  const ox = (Math.random() - 0.5) * 6, oz = (Math.random() - 0.5) * 6;
+  m.position.set(zone.x + ox, G.heightAt(zone.x + ox, zone.z + oz) + 0.15, zone.z + oz);
   scene.add(m);
-  pen.resident = { mesh: m, t: Math.random() * 9, cx: pen.x, cz: pen.z };
-  G.zooResidents.push(pen.resident);
+  const res = { key, mesh: m, t: Math.random() * 9, zone, ph: Math.random() * 9 };
+  zone.residents.push(res);
+  G.zooResidents.push(res);
 };
 G.updateZoo = function (dt) {
   for (const r of G.zooResidents) {
     r.t += dt;
-    const wob = r.t * 0.5;
-    const x = r.cx + Math.cos(wob) * 1.6, z = r.cz + Math.sin(wob * 0.7) * 1.6;
+    const wob = r.t * 0.4 + r.ph;
+    const x = r.zone.x + Math.cos(wob) * r.zone.half * 0.55 + Math.sin(r.ph * 3) * 1.2;
+    const z = r.zone.z + Math.sin(wob * 0.8) * r.zone.half * 0.55;
     r.mesh.rotation.y = Math.atan2(x - r.mesh.position.x, z - r.mesh.position.z);
-    r.mesh.position.set(x, G.heightAt(x, z) + Math.abs(Math.sin(r.t * 6)) * 0.05, z);
+    r.mesh.position.set(x, G.heightAt(x, z) + 0.15 + Math.abs(Math.sin(r.t * 6)) * 0.04, z);
   }
 };
 
-// ----- zoo guests: little visitors who pay to see your animals -----
+// ---------------------------------------------------------------------------
+// zoo guests: little visitors who tour occupied zones and pay coins
+// ---------------------------------------------------------------------------
 G.guests = [];
 const GUEST_COLORS = [0xf28fb1, 0x8fc7f2, 0xf2d38f, 0xb28ff2, 0x8ff2b6, 0xf2a58f];
-function buildGuest(color) {
-  const g = new THREE.Group(), S = G.geo.sphere;
-  G.part(g, S, color, 0, 0.55, 0, 0.32, 0.4, 0.26);                   // body
-  const head = G.part(g, S, 0xffd9a6, 0, 1.15, 0, 0.3);
-  G.part(head, S, 0x1c1c1c, 0.35, 0.1, 0.92, 0.13);
-  G.part(head, S, 0x1c1c1c, -0.35, 0.1, 0.92, 0.13);
-  G.part(head, S, color, 0, 0.75, 0, 0.85, 0.5, 0.85);                // cap
-  G.part(g, S, 0x4a3828, 0.12, 0.08, 0, 0.11, 0.08, 0.14);            // feet
-  G.part(g, S, 0x4a3828, -0.12, 0.08, 0, 0.11, 0.08, 0.14);
-  return g;
-}
+G.zooAppeal = function () {
+  let decor = 0;
+  for (const z of G.zones) decor += (G.meta.decor && G.meta.decor[z.id]) || 0;
+  return 1 + decor * 0.15 + (G.meta.upg.poster ? 0.5 : 0);
+};
 G.guestTimer = 5;
 G.updateGuests = function (dt, scene) {
-  const zooCount = G.zooResidents.length;
-  if (zooCount === 0) return;
-  const maxGuests = zooCount * (G.meta.upg.poster ? 3 : 2);
+  const occupied = G.zones.filter(z => z.residents.length);
+  if (!occupied.length) return;
+  const maxGuests = Math.round((G.zooResidents.length + 1) * G.zooAppeal());
   G.guestTimer -= dt;
   if (G.guestTimer <= 0 && G.guests.length < maxGuests) {
-    G.guestTimer = 6 + Math.random() * 8;
-    const mesh = buildGuest(GUEST_COLORS[Math.floor(Math.random() * GUEST_COLORS.length)]);
-    const sx = (Math.random() - 0.5) * 6, sz = 24;
+    G.guestTimer = (7 + Math.random() * 8) / G.zooAppeal();
+    const mesh = G.buildVillager({ shirt: GUEST_COLORS[Math.floor(Math.random() * GUEST_COLORS.length)], hat: 'cap' });
+    const sx = (Math.random() - 0.5) * 6, sz = 26;
     mesh.position.set(sx, G.heightAt(sx, sz), sz);
     scene.add(mesh);
-    const pens = G.pens.filter(p => p.resident);
-    const pen = pens[Math.floor(Math.random() * pens.length)];
-    G.guests.push({ mesh, pen, state: 'walk', t: 0, payT: 4, life: 40 + Math.random() * 30 });
+    const zone = occupied[Math.floor(Math.random() * occupied.length)];
+    G.guests.push({ mesh, zone, state: 'walk', t: 0, payT: 4, life: 45 + Math.random() * 40 });
   }
   for (let i = G.guests.length - 1; i >= 0; i--) {
     const g = G.guests[i];
@@ -333,27 +457,27 @@ G.updateGuests = function (dt, scene) {
     let tx, tz;
     if (g.life <= 0) g.state = 'leave';
     if (g.state === 'walk') {
-      tx = g.pen.x + 4.5 - p.x; tz = g.pen.z + (Math.sin(g.t) * 1) - p.z;
+      const gx = g.zone.x * 0.82, gz = g.zone.z * 0.82; // stand outside the gate
+      tx = gx - p.x; tz = gz - p.z;
       const d = Math.hypot(tx, tz);
-      if (d < 1.2) g.state = 'watch';
+      if (d < 1.4) g.state = 'watch';
       else { p.x += tx / d * 2.4 * dt; p.z += tz / d * 2.4 * dt; g.mesh.rotation.y = Math.atan2(tx, tz); }
     } else if (g.state === 'watch') {
-      g.mesh.rotation.y = Math.atan2(g.pen.x - p.x, g.pen.z - p.z);
+      g.mesh.rotation.y = Math.atan2(g.zone.x - p.x, g.zone.z - p.z);
       g.payT -= dt;
       if (g.payT <= 0) {
         g.payT = 5 + Math.random() * 3;
-        G.addCoins(G.meta.upg.poster ? 2 : 1, p);
-        // occasionally wander to a different pen
-        if (Math.random() < 0.3) {
-          const pens = G.pens.filter(pp => pp.resident);
-          g.pen = pens[Math.floor(Math.random() * pens.length)];
+        G.addCoins(Math.max(1, Math.round(G.zooAppeal())), p);
+        const others = G.zones.filter(z => z.residents.length && z !== g.zone);
+        if (others.length && Math.random() < 0.35) {
+          g.zone = others[Math.floor(Math.random() * others.length)];
           g.state = 'walk';
         }
       }
-    } else { // leave
+    } else {
       tx = 0 - p.x; tz = 30 - p.z;
       const d = Math.hypot(tx, tz);
-      if (d < 2) { scene.remove(g.mesh); G.guests.splice(i, 1); continue; }
+      if (d < 2.5) { scene.remove(g.mesh); G.guests.splice(i, 1); continue; }
       p.x += tx / d * 2.8 * dt; p.z += tz / d * 2.8 * dt;
       g.mesh.rotation.y = Math.atan2(tx, tz);
     }

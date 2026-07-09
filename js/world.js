@@ -1,6 +1,7 @@
 'use strict';
 // ---------------------------------------------------------------------------
 // Wildmask — world.js : procedural island, biomes, camp hub, props, obstacles
+// biomes: plains, forest, desert (mesas), swamp (pools), rock (terraces), ocean
 // ---------------------------------------------------------------------------
 G.WATER_Y = 0;
 G.MAP = 520;          // terrain plane size
@@ -8,40 +9,43 @@ G.RADIUS = 245;       // hard travel limit
 G.tentPos = new THREE.Vector3(0, 0, 0);
 
 // -------- terrain sampling (analytic, shared by render + gameplay) --------
-// biomes: plains, desert (mesas), swamp (pools), rock (terraces), + ocean rim
 G.sample = function (x, z) {
   const s = G.seed;
   const raw = (G.fbm(x * 0.013, z * 0.013, 4, s) - 0.35) * 16;
   const t = G.fbm(x * 0.006 + 100, z * 0.006 + 100, 3, s + 900);   // temperature
   const m = G.fbm(x * 0.007 + 200, z * 0.007 - 200, 3, s + 1700);  // moisture
+  const fo = G.fbm(x * 0.008 - 300, z * 0.008 + 300, 3, s + 2500); // forest density
   // biome height targets, blended smoothly so borders aren't cliffs
   const dF = G.smoothstep(0.56, 0.64, t);                          // desert factor
   const sF = G.smoothstep(0.56, 0.64, m) * (1 - dF);               // swamp factor
+  const fF = G.smoothstep(0.52, 0.60, fo) * (1 - dF) * (1 - sF);   // forest factor
   let hd = raw * 0.45 + 2.4;
   const mm = G.fbm(x * 0.02 - 50, z * 0.02 + 50, 2, s + 300);
   if (mm > 0.575) hd += G.smoothstep(0.575, 0.595, mm) * 9;        // mesas (sheer walls, climb-only)
   const hs = raw * 0.35 - 0.7;                                     // murky pools
+  const hf = raw * 0.7 + 1.2;                                      // gentle forest floor
   let h = raw * (1 - dF - sF) + hd * dF + hs * sF;
-  let biome = dF > 0.5 ? 'desert' : (sF > 0.5 ? 'swamp' : 'plains');
-  if (biome === 'plains' && dF < 0.02 && sF < 0.02 && h > 5.0) {
+  h = h * (1 - fF) + hf * fF;
+  let biome = dF > 0.5 ? 'desert' : (sF > 0.5 ? 'swamp' : (fF > 0.5 ? 'forest' : 'plains'));
+  if (biome === 'plains' && dF < 0.02 && sF < 0.02 && fF < 0.02 && h > 5.0) {
     biome = 'rock';
     h = 5.0 + Math.floor((h - 5.0) / 2.0) * 2.0;                   // terraces (frog hops)
   }
   // flatten the camp hub
   const d = Math.hypot(x, z);
-  const f = 1 - G.smoothstep(22, 42, d);
+  const f = 1 - G.smoothstep(26, 48, d);
   if (f > 0) { h = h * (1 - f) + 1.6 * f; if (f > 0.55) biome = 'plains'; }
   // island falls into the ocean
   if (d > 210) h -= (d - 210) * 0.18;
   return { h: h, biome: biome };
 };
 G.heightAt = (x, z) => G.sample(x, z).h;
-
 G.deepWater = function (x, z) { return G.WATER_Y - G.heightAt(x, z) > 1.4; };
 
 // -------- terrain mesh with vertex colors --------
 const BIOME_COL = {
   plains: new THREE.Color(0x7cc95e),
+  forest: new THREE.Color(0x549e48),
   desert: new THREE.Color(0xecd489),
   swamp:  new THREE.Color(0x7a9150),
   rock:   new THREE.Color(0xa8a29a)
@@ -84,7 +88,6 @@ G.buildTerrain = function (scene) {
   mesh.receiveShadow = true;
   scene.add(mesh);
 
-  // water disc
   const wgeo = new THREE.CircleGeometry(G.MAP * 0.72, 48);
   wgeo.rotateX(-Math.PI / 2);
   const wmat = G.curve(new THREE.MeshLambertMaterial({
@@ -95,10 +98,23 @@ G.buildTerrain = function (scene) {
   scene.add(G.water);
 };
 
-// -------- prop scatter --------
+// -------- prop registries --------
 G.boulders = [];   // breakable: {mesh, x, z, hp}
 G.burrows = [];    // mouse-holes: {x, z, mesh}
 G.coins = [];      // pickups: {mesh, x, z, y, t}
+G.bushes = [];     // stealth spots: {x, z, r}
+G.plantNodes = []; // gatherables: {mesh, x, z, type, taken}
+G.drops = [];      // ingredient/gear pickups: {mesh, x, z, kind, species, t}
+
+// -------- collectible plants (for Cheryl) --------
+G.PLANTS = {
+  bloom:  { name: 'Meadow Bloom',    emoji: '🌼', color: 0xffd94d, biome: 'plains' },
+  fern:   { name: 'Moon Fern',       emoji: '🌿', color: 0x4fd18a, biome: 'forest' },
+  cactusflower: { name: 'Prickle Blossom', emoji: '🌵', color: 0xf27ba0, biome: 'desert' },
+  reed:   { name: 'Marsh Reed',      emoji: '🎋', color: 0x9bc06a, biome: 'swamp' },
+  moss:   { name: 'Crag Moss',       emoji: '🍀', color: 0x6fae5a, biome: 'rock' },
+  lily:   { name: 'Pond Lily',       emoji: '🌸', color: 0xf2a9c4, biome: 'shore' }
+};
 
 function rngPoint(rand) {
   const a = rand() * Math.PI * 2, r = 30 + rand() * 190;
@@ -109,17 +125,22 @@ G.buildProps = function (scene) {
   const rand = G.mulberry(G.seed + 42);
   const dummy = new THREE.Object3D();
 
-  // --- trees (plains): trunk + blob canopy, instanced ---
-  const treeSpots = [], cactusSpots = [], swampSpots = [], tuftSpots = [];
-  for (let i = 0; i < 4200; i++) {
+  // --- gather scatter spots ---
+  const treeSpots = [], forestTreeSpots = [], cactusSpots = [], swampSpots = [],
+        tuftSpots = [], bushSpots = [];
+  for (let i = 0; i < 9000; i++) {
     const p = rngPoint(rand), smp = G.sample(p.x, p.z);
-    if (smp.h < 0.5 || Math.hypot(p.x, p.z) < 26) continue;
+    if (smp.h < 0.5 || Math.hypot(p.x, p.z) < 30) continue;
     if (smp.biome === 'plains') {
-      if (treeSpots.length < 260 && rand() < 0.18) treeSpots.push({ p, h: smp.h, s: 0.8 + rand() * 0.7 });
-      else if (tuftSpots.length < 700) tuftSpots.push({ p, h: smp.h, s: 0.6 + rand() * 0.8 });
-    } else if (smp.biome === 'desert' && cactusSpots.length < 120 && rand() < 0.3) {
+      if (treeSpots.length < 220 && rand() < 0.15) treeSpots.push({ p, h: smp.h, s: 0.8 + rand() * 0.7 });
+      else if (bushSpots.length < 160 && rand() < 0.06) bushSpots.push({ p, h: smp.h, s: 0.8 + rand() * 0.5 });
+      else if (tuftSpots.length < 650) tuftSpots.push({ p, h: smp.h, s: 0.6 + rand() * 0.8 });
+    } else if (smp.biome === 'forest') {
+      if (forestTreeSpots.length < 420 && rand() < 0.5) forestTreeSpots.push({ p, h: smp.h, s: 0.9 + rand() * 0.9 });
+      else if (bushSpots.length < 160 && rand() < 0.35) bushSpots.push({ p, h: smp.h, s: 0.9 + rand() * 0.6 });
+    } else if (smp.biome === 'desert' && cactusSpots.length < 110 && rand() < 0.3) {
       cactusSpots.push({ p, h: smp.h, s: 0.7 + rand() * 0.8 });
-    } else if (smp.biome === 'swamp' && smp.h > 0.2 && swampSpots.length < 110 && rand() < 0.3) {
+    } else if (smp.biome === 'swamp' && smp.h > 0.2 && swampSpots.length < 100 && rand() < 0.3) {
       swampSpots.push({ p, h: smp.h, s: 0.8 + rand() * 0.6 });
     }
   }
@@ -132,19 +153,25 @@ G.buildProps = function (scene) {
     m.instanceMatrix.needsUpdate = true;
     scene.add(m);
   }
-  // trunks
+  // plains trees
   instanced(() => new THREE.CylinderGeometry(0.28, 0.4, 2.4, 7), 0x8a6239, treeSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 1.1, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, sp.s * 9, 0);
   });
-  // canopies
   instanced(() => new THREE.SphereGeometry(1.7, 9, 7), 0x58ab4a, treeSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 2.4 + sp.s, sp.p.z); d.scale.set(sp.s * 1.15, sp.s, sp.s * 1.15); d.rotation.set(0, 0, 0);
+  });
+  // forest trees: taller, darker, denser
+  instanced(() => new THREE.CylinderGeometry(0.3, 0.45, 3.4, 7), 0x6f4e2c, forestTreeSpots, (sp, d) => {
+    d.position.set(sp.p.x, sp.h + 1.6, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, sp.s * 9, 0);
+  });
+  instanced(() => new THREE.SphereGeometry(1.8, 9, 7), 0x3f8f3a, forestTreeSpots, (sp, d) => {
+    d.position.set(sp.p.x, sp.h + 3.3 + sp.s, sp.p.z); d.scale.set(sp.s * 1.1, sp.s * 1.15, sp.s * 1.1); d.rotation.set(0, 0, 0);
   });
   // cacti
   instanced(() => THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.45, 1.6, 4, 8) : new THREE.CylinderGeometry(0.45, 0.5, 2.2, 8), 0x4f9948, cactusSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 1.0 * sp.s, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, sp.s * 7, 0);
   });
-  // swamp trees: dark droopy blobs on thin trunks
+  // swamp trees
   instanced(() => new THREE.CylinderGeometry(0.18, 0.3, 3.2, 6), 0x5d4a33, swampSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 1.5, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, 0, 0);
   });
@@ -155,8 +182,39 @@ G.buildProps = function (scene) {
   instanced(() => new THREE.ConeGeometry(0.16, 0.55, 5), 0x66b84e, tuftSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 0.22, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(rand() * 0.3, rand() * 6, 0);
   });
+  // bushes (stealth!) — a cluster of squashed blobs
+  instanced(() => new THREE.SphereGeometry(1.0, 8, 6), 0x468a3e, bushSpots, (sp, d) => {
+    d.position.set(sp.p.x, sp.h + 0.55 * sp.s, sp.p.z);
+    d.scale.set(sp.s * 1.25, sp.s * 0.75, sp.s * 1.25); d.rotation.set(0, rand() * 6, 0);
+  });
+  bushSpots.forEach(sp => G.bushes.push({ x: sp.p.x, z: sp.p.z, r: sp.s * 1.3 }));
 
-  // --- breakable cracked boulders (frog kick) ---
+  // --- gatherable plants for Cheryl ---
+  const plantGeoStem = new THREE.CylinderGeometry(0.05, 0.07, 0.5, 5);
+  const plantGeoHead = new THREE.SphereGeometry(0.22, 7, 6);
+  const keys = Object.keys(G.PLANTS);
+  let placedPlants = 0;
+  for (let i = 0; i < 3500 && placedPlants < 60; i++) {
+    const p = rngPoint(rand), smp = G.sample(p.x, p.z);
+    if (Math.hypot(p.x, p.z) < 30) continue;
+    let type = null;
+    for (const k of keys) {
+      const pl = G.PLANTS[k];
+      if (pl.biome === 'shore') { if (smp.h > 0.15 && smp.h < 0.7 && rand() < 0.5) { type = k; break; } }
+      else if (pl.biome === smp.biome && smp.h > 0.4 && rand() < 0.4) { type = k; break; }
+    }
+    if (!type) continue;
+    const grp = new THREE.Group();
+    G.part(grp, plantGeoStem, 0x4c8a3e, 0, 0.25, 0, 1);
+    G.part(grp, plantGeoHead, G.PLANTS[type].color, 0, 0.55, 0, 1, 0.8, 1, { emissive: 0x1a1408 });
+    G.part(grp, plantGeoHead, 0x5fae4c, 0.15, 0.18, 0.1, 0.7, 0.3, 0.7);
+    grp.position.set(p.x, smp.h, p.z);
+    scene.add(grp);
+    G.plantNodes.push({ mesh: grp, x: p.x, z: p.z, type, taken: false });
+    placedPlants++;
+  }
+
+  // --- breakable cracked boulders (frog kick / bear swipe) ---
   const bgeo = new THREE.DodecahedronGeometry(1.15, 0);
   for (let i = 0; i < 14; i++) {
     for (let tries = 0; tries < 40; tries++) {
@@ -166,7 +224,6 @@ G.buildProps = function (scene) {
       mesh.position.set(p.x, smp.h + 0.7, p.z);
       mesh.rotation.set(rand() * 3, rand() * 3, rand() * 3);
       mesh.castShadow = true;
-      // crack lines: darker small dodeca poking through
       G.part(mesh, bgeo, 0x4c463e, 0.28, 0.2, 0.15, 0.55);
       scene.add(mesh);
       G.boulders.push({ mesh, x: p.x, z: p.z, hp: 2 });
@@ -179,9 +236,9 @@ G.buildProps = function (scene) {
   for (let i = 0; i < 7; i++) {
     for (let tries = 0; tries < 60; tries++) {
       const p = rngPoint(rand), smp = G.sample(p.x, p.z);
-      if ((smp.biome !== 'plains' && smp.biome !== 'desert') || smp.h < 0.8) continue;
+      if ((smp.biome !== 'plains' && smp.biome !== 'desert' && smp.biome !== 'forest') || smp.h < 0.8) continue;
       const grp = new THREE.Group();
-      G.part(grp, G.geo.sphere, 0x9c7c4e, 0, 0.05, 0, 0.9, 0.35, 0.9); // mound
+      G.part(grp, G.geo.sphere, 0x9c7c4e, 0, 0.05, 0, 0.9, 0.35, 0.9);
       const hole = new THREE.Mesh(holeGeo, G.mat(0x241a10));
       hole.position.y = 0.28; grp.add(hole);
       grp.position.set(p.x, smp.h, p.z);
@@ -192,7 +249,7 @@ G.buildProps = function (scene) {
   }
 };
 
-// -------- coins --------
+// -------- coins & drops --------
 const coinGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.09, 12);
 G.spawnCoin = function (scene, x, z, y) {
   const m = new THREE.Mesh(coinGeo, G.mat(0xf5c542, { emissive: 0x6b4d00 }));
@@ -202,19 +259,40 @@ G.spawnCoin = function (scene, x, z, y) {
   scene.add(m);
   G.coins.push({ mesh: m, x, z, y, t: Math.random() * 6 });
 };
+// ingredient crate / confiscated gear pickup
+G.spawnDrop = function (scene, x, z, kind, species) {
+  const grp = new THREE.Group();
+  if (kind === 'ingredient') {
+    G.part(grp, G.geo.box, 0xb98a52, 0, 0.3, 0, 0.7, 0.6, 0.7);
+    G.part(grp, G.geo.box, 0x8a6239, 0, 0.32, 0, 0.74, 0.14, 0.74);
+  } else { // gear
+    G.part(grp, G.geo.box, 0x4a5340, 0, 0.25, 0, 0.8, 0.5, 0.5);
+    G.part(grp, G.geo.cyl, 0x2c3328, 0, 0.55, 0, 0.1, 0.4, 0.1).rotation.z = 1.2;
+  }
+  grp.position.set(x, G.heightAt(x, z), z);
+  G.scene.add(grp);
+  G.drops.push({ mesh: grp, x, z, kind, species, t: 0 });
+};
 
-// -------- camp hub: field tent + zoo pens --------
-G.pens = []; // {x, z, species|null, sign}
+// -------- camp hub: field tent, NPC stands, enclosure zones --------
+// 5 themed enclosure zones replace the old pens; each hosts its biome's species.
+G.ZONES = [
+  { id: 'plains',   label: 'Plains Paddock',  col: 0xc9a84b, floor: 0x8fce6a },
+  { id: 'forest',   label: 'Forest Grove',    col: 0x4f9948, floor: 0x63a854 },
+  { id: 'desert',   label: 'Desert Dome',     col: 0xd9a45b, floor: 0xe6cf8d },
+  { id: 'wetland',  label: 'Wetland Lagoon',  col: 0x5e97a8, floor: 0x86a86a },
+  { id: 'highland', label: 'Highland Crag',   col: 0x8f8a82, floor: 0xa8a29a }
+];
+G.zones = [];
 G.buildHub = function (scene) {
-  // -- field tent --
+  // -- field tent (Tia's mask lab) --
   const tent = new THREE.Group();
   const th = G.heightAt(0, -8);
   G.tentPos.set(0, th, -8);
-  // canvas: two leaning planes -> use boxes
   G.part(tent, G.geo.box, 0xe8863c, -1.15, 1.1, 0, 0.12, 3.2, 4.2).rotation.z = -0.62;
   G.part(tent, G.geo.box, 0xf9a45b, 1.15, 1.1, 0, 0.12, 3.2, 4.2).rotation.z = 0.62;
-  G.part(tent, G.geo.box, 0xd97430, 0, 2.18, 0, 0.14, 0.3, 4.3); // ridge
-  G.part(tent, G.geo.box, 0x3d2c1c, 0, 0.05, 0, 3.0, 0.1, 4.0);  // ground mat
+  G.part(tent, G.geo.box, 0xd97430, 0, 2.18, 0, 0.14, 0.3, 4.3);
+  G.part(tent, G.geo.box, 0x3d2c1c, 0, 0.05, 0, 3.0, 0.1, 4.0);
   const poleF = G.part(tent, G.geo.cyl, 0x6b4c2c, 0, 1.1, 2.0, 0.08, 2.2, 0.08);
   const flag = G.part(tent, G.geo.box, 0xffdf6b, 0.35, 2.35, 2.0, 0.7, 0.4, 0.05);
   flag.castShadow = false; poleF.castShadow = false;
@@ -222,46 +300,104 @@ G.buildHub = function (scene) {
   scene.add(tent);
   G.tentMesh = tent;
 
-  // campfire ring
+  // campfire
   const fire = new THREE.Group();
   for (let i = 0; i < 6; i++) {
     const a = i / 6 * Math.PI * 2;
     G.part(fire, G.geo.sphere, 0x8d8579, Math.cos(a) * 0.7, 0.12, Math.sin(a) * 0.7, 0.24);
   }
   G.part(fire, G.geo.cone, 0xff8c3a, 0, 0.45, 0, 0.32, 0.8, 0.32, { emissive: 0xff5500 });
-  fire.position.set(3.5, G.heightAt(3.5, -4), -4);
+  fire.position.set(4.5, G.heightAt(4.5, -4), -4);
   scene.add(fire);
   G.fireMesh = fire;
 
-  // -- zoo pens: 5 in an arc --
-  const order = ['horse', 'frog', 'croc', 'mouse', 'scorpion'];
-  const penCols = { horse: 0xc98a4b, frog: 0x6fc45f, croc: 0x5e9151, mouse: 0xb9b3ac, scorpion: 0xb0563a };
+  // -- Cheryl's botany stand (west) --
+  const cherylStand = new THREE.Group();
+  G.part(cherylStand, G.geo.box, 0xa4713d, 0, 0.75, 0, 2.4, 0.14, 1.0);
+  G.part(cherylStand, G.geo.box, 0x8a6239, -1.0, 0.36, 0, 0.16, 0.72, 0.8);
+  G.part(cherylStand, G.geo.box, 0x8a6239, 1.0, 0.36, 0, 0.16, 0.72, 0.8);
+  for (let i = 0; i < 3; i++) {
+    G.part(cherylStand, G.geo.cyl, 0xc96f4a, -0.7 + i * 0.7, 0.95, 0, 0.18, 0.25, 0.18);
+    G.part(cherylStand, G.geo.sphere, [0xffd94d, 0xf27ba0, 0x9bc06a][i], -0.7 + i * 0.7, 1.2, 0, 0.2, 0.16, 0.2);
+  }
+  G.part(cherylStand, G.geo.box, 0x6fc45f, 0, 1.9, 0, 2.6, 0.4, 0.08); // awning sign
+  cherylStand.position.set(-12, G.heightAt(-12, 2), 2);
+  cherylStand.rotation.y = Math.PI / 2.4;
+  scene.add(cherylStand);
+  G.cherylStand = cherylStand;
+
+  // -- Montana's kitchen (east) --
+  const kitchen = new THREE.Group();
+  G.part(kitchen, G.geo.box, 0x9c8468, 0, 0.75, 0, 2.4, 0.14, 1.0);
+  G.part(kitchen, G.geo.box, 0x7d6a52, -1.0, 0.36, 0, 0.16, 0.72, 0.8);
+  G.part(kitchen, G.geo.box, 0x7d6a52, 1.0, 0.36, 0, 0.16, 0.72, 0.8);
+  G.part(kitchen, G.geo.cyl, 0x3d3d3d, 0.5, 1.05, 0, 0.34, 0.4, 0.34);  // pot
+  G.part(kitchen, G.geo.sphere, 0xf2e6c6, 0.5, 1.25, 0, 0.26, 0.1, 0.26); // broth
+  G.part(kitchen, G.geo.box, 0xe86a4a, 0, 1.9, 0, 2.6, 0.4, 0.08); // awning sign
+  kitchen.position.set(12, G.heightAt(12, 2), 2);
+  kitchen.rotation.y = -Math.PI / 2.4;
+  scene.add(kitchen);
+  G.kitchenStand = kitchen;
+
+  // -- enclosure zones: 5 big themed squares in an arc behind camp --
   for (let i = 0; i < 5; i++) {
-    const a = (-0.5 + i / 4) * Math.PI * 0.9 + Math.PI * 0.5; // arc behind camp
-    const px = Math.cos(a) * 19, pz = Math.sin(a) * 19 + 2;
+    const zdef = G.ZONES[i];
+    const a = (-0.5 + i / 4) * Math.PI * 1.05 + Math.PI * 0.5;
+    const px = Math.cos(a) * 30, pz = Math.sin(a) * 30 + 4;
     const py = G.heightAt(px, pz);
-    const pen = new THREE.Group();
-    // fence: posts + rails around 7x7
-    const S = 3.4;
-    for (let sx = -1; sx <= 1; sx += 2) for (let sz = -1; sz <= 1; sz += 2)
-      G.part(pen, G.geo.cyl, 0xa4713d, sx * S, 0.55, sz * S, 0.12, 1.1, 0.12);
-    for (let k = 0; k < 4; k++) {
-      const horiz = k < 2;
-      const rail = G.part(pen, G.geo.box, 0xbd8a52,
-        horiz ? 0 : (k === 2 ? -S : S), 0.75, horiz ? (k === 0 ? -S : S) : 0,
-        horiz ? S * 2 : 0.14, 0.14, horiz ? 0.14 : S * 2);
-      const rail2 = rail.clone(); rail2.position.y = 0.35; pen.add(rail2);
+    const grp = new THREE.Group();
+    const S = 6.2; // half-extent
+    // themed floor slab
+    G.part(grp, G.geo.box, zdef.floor, 0, 0.06, 0, S * 2, 0.12, S * 2).receiveShadow = true;
+    // fence: posts every 2.5m + double rails, gate gap on the hub-facing side (-z local)
+    const post = new THREE.CylinderGeometry(0.11, 0.11, 1.2, 7);
+    for (let sideIdx = 0; sideIdx < 4; sideIdx++) {
+      const horiz = sideIdx < 2;
+      const fixed = (sideIdx % 2 === 0 ? -S : S);
+      for (let k = -S; k <= S + 0.01; k += S / 2) {
+        if (sideIdx === 0 && Math.abs(k) < S / 2 - 0.1) continue; // gate gap
+        const x = horiz ? k : fixed, z = horiz ? fixed : k;
+        G.part(grp, post, 0xa4713d, x, 0.6, z, 1);
+      }
+      for (const ry of [0.5, 0.95]) {
+        if (sideIdx === 0) { // gate side: two short rails
+          G.part(grp, G.geo.box, 0xbd8a52, -S * 0.75, ry, fixed, S * 0.5, 0.12, 0.12);
+          G.part(grp, G.geo.box, 0xbd8a52, S * 0.75, ry, fixed, S * 0.5, 0.12, 0.12);
+        } else {
+          G.part(grp, G.geo.box, 0xbd8a52,
+            horiz ? 0 : fixed, ry, horiz ? fixed : 0,
+            horiz ? S * 2 : 0.12, 0.12, horiz ? 0.12 : S * 2);
+        }
+      }
     }
-    // sign
+    // sign by the gate
     const sign = new THREE.Group();
-    G.part(sign, G.geo.cyl, 0x8a6239, 0, 0.5, 0, 0.09, 1.0, 0.09);
-    G.part(sign, G.geo.box, penCols[order[i]], 0, 1.05, 0, 1.1, 0.6, 0.12);
-    sign.position.set(0, 0, -S - 0.6);
-    pen.add(sign);
-    pen.position.set(px, py, pz);
-    pen.lookAt(0, py, 0);
-    scene.add(pen);
-    G.pens.push({ x: px, z: pz, species: order[i], group: pen, resident: null });
+    G.part(sign, G.geo.cyl, 0x8a6239, 0, 0.55, 0, 0.09, 1.1, 0.09);
+    G.part(sign, G.geo.box, zdef.col, 0, 1.15, 0, 1.5, 0.65, 0.12);
+    sign.position.set(0, 0, -S - 0.7);
+    grp.add(sign);
+    // wetland gets a pool
+    if (zdef.id === 'wetland') {
+      const pool = new THREE.Mesh(new THREE.CircleGeometry(2.4, 16),
+        G.curve(new THREE.MeshLambertMaterial({ color: 0x4db3d4, transparent: true, opacity: 0.8, key: 'zpool' })));
+      pool.rotation.x = -Math.PI / 2;
+      pool.position.set(1.5, 0.14, 1.5);
+      grp.add(pool);
+    }
+    // highland gets rock steps
+    if (zdef.id === 'highland') {
+      G.part(grp, G.geo.box, 0x9a948c, -1.5, 0.45, 1.5, 2.4, 0.9, 2.4);
+      G.part(grp, G.geo.box, 0x8a847c, -1.5, 1.05, 1.5, 1.4, 0.9, 1.4);
+    }
+    const decor = new THREE.Group();
+    grp.add(decor);
+    grp.position.set(px, py, pz);
+    grp.lookAt(0, py, 4);
+    scene.add(grp);
+    G.zones.push({
+      id: zdef.id, label: zdef.label, x: px, z: pz, half: S - 0.8,
+      group: grp, decorGroup: decor, residents: []
+    });
   }
 
   // welcome arch at hub south
@@ -269,8 +405,34 @@ G.buildHub = function (scene) {
   G.part(arch, G.geo.cyl, 0xa4713d, -2, 1.4, 0, 0.18, 2.8, 0.18);
   G.part(arch, G.geo.cyl, 0xa4713d, 2, 1.4, 0, 0.18, 2.8, 0.18);
   G.part(arch, G.geo.box, 0xffd267, 0, 2.9, 0, 4.8, 0.7, 0.2);
-  arch.position.set(0, G.heightAt(0, 12), 12);
+  arch.position.set(0, G.heightAt(0, 14), 14);
   scene.add(arch);
+};
+
+// -------- enclosure decorations (Cheryl) --------
+// decor levels 1..3 per zone, persisted in meta.decor[zoneId]
+G.buildZoneDecor = function (zone) {
+  const lvl = (G.meta.decor && G.meta.decor[zone.id]) || 0;
+  const dg = zone.decorGroup;
+  while (dg.children.length) dg.remove(dg.children[0]);
+  if (lvl >= 1) { // flower patches in the corners
+    for (const [fx, fz] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) {
+      G.part(dg, G.geo.sphere, 0x5fae4c, fx, 0.25, fz, 0.5, 0.25, 0.5);
+      G.part(dg, G.geo.sphere, [0xffd94d, 0xf27ba0, 0xf2a9c4, 0x9bc06a][(fx > 0 ? 1 : 0) + (fz > 0 ? 2 : 0)],
+        fx, 0.45, fz, 0.22, 0.18, 0.22, { emissive: 0x151005 });
+    }
+  }
+  if (lvl >= 2) { // planter boxes along the back
+    for (const px of [-2.5, 0, 2.5]) {
+      G.part(dg, G.geo.box, 0xc96f4a, px, 0.35, 4.8, 1.4, 0.45, 0.7);
+      G.part(dg, G.geo.sphere, 0x6fc45f, px, 0.65, 4.8, 0.55, 0.3, 0.3);
+    }
+  }
+  if (lvl >= 3) { // centrepiece tree + festive arch over the gate
+    G.part(dg, G.geo.cyl, 0x8a6239, 0, 0.9, 0, 0.22, 1.8, 0.22);
+    G.part(dg, G.geo.sphere, 0x58ab4a, 0, 2.2, 0, 1.3, 1.0, 1.3);
+    G.part(dg, G.geo.box, 0xf2a9c4, 0, 2.4, -5.6, 3.2, 0.35, 0.18);
+  }
 };
 
 // -------- clouds --------

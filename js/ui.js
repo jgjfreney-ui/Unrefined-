@@ -1,6 +1,6 @@
 'use strict';
 // ---------------------------------------------------------------------------
-// Wildmask — ui.js : HUD, tent menu, notebook, minimap, toasts
+// Wildmask — ui.js : HUD, mask dial, tent menu, notebook, minimap, toasts
 // ---------------------------------------------------------------------------
 G.ui = {};
 const $ = id => document.getElementById(id);
@@ -9,10 +9,11 @@ G.toast = function (msg, ms) {
   const box = $('toasts');
   const el = document.createElement('div');
   el.className = 'toast';
-  el.textContent = msg;
+  el.innerHTML = msg;
   box.appendChild(el);
+  while (box.children.length > 4) box.removeChild(box.firstChild);
   setTimeout(() => el.classList.add('show'), 20);
-  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, ms || 3200);
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, ms || 3600);
 };
 
 G.ui.init = function () {
@@ -25,16 +26,18 @@ G.ui.init = function () {
     G.audio.init();
     $('intro').classList.add('hidden');
     G.started = true;
+    if ((G.meta.quest || 0) === 0) G.toast('Find Tia by the orange tent — she has your briefing.');
   };
   $('btnHelp').onclick = () => $('help').classList.toggle('hidden');
   $('helpClose').onclick = () => $('help').classList.add('hidden');
   $('tentClose').onclick = () => G.ui.closeTent();
+  $('dialclose').onclick = () => G.ui.toggleDial(false);
   $('btnNewRun').onclick = () => {
     if (confirm('Set off on a new expedition? A fresh island forms — you keep your masks, zoo, coins and research.')) G.newExpedition();
   };
 };
 
-// ----- hearts / stamina / breath -----
+// ----- hearts / stamina / breath / buffs -----
 G.ui.refreshHearts = function () {
   const P = G.player; if (!P) return;
   let s = '';
@@ -52,6 +55,14 @@ G.ui.updateBars = function (P) {
   const showBreath = P.swimming && P.breath < 99.5;
   $('breathbar').style.opacity = showBreath ? 1 : 0;
   $('breathfill').style.width = P.breath + '%';
+  // buff chip
+  const b = $('buffchip');
+  if (G.buffs && G.buffs.timer > 0) {
+    b.classList.remove('hidden');
+    b.textContent = '🍲 ' + Math.ceil(G.buffs.timer) + 's';
+  } else b.classList.add('hidden');
+  // stealth chip
+  $('stealthchip').classList.toggle('hidden', !P.hidden);
 };
 
 // ----- coins -----
@@ -64,7 +75,6 @@ G.addCoins = function (n, worldPos) {
 };
 G.ui.refreshCoins = function () { $('coins').textContent = G.meta.coins; };
 
-// floating "+1" popups projected from world space
 G.ui.popup = function (text, worldPos) {
   const v = worldPos.clone ? worldPos.clone() : new THREE.Vector3(worldPos.x, worldPos.y, worldPos.z);
   v.y += 1.5;
@@ -79,32 +89,62 @@ G.ui.popup = function (text, worldPos) {
   setTimeout(() => el.remove(), 1100);
 };
 
-// ----- mask hotbar -----
-const MASK_EMOJI = { frog: '🐸', horse: '🐴', croc: '🐊', mouse: '🐭', scorpion: '🦂' };
+// ----- mask hotbar (owned masks, digits 1-9) + full dial -----
 G.ui.refreshHotbar = function () {
   const bar = $('hotbar');
   bar.innerHTML = '';
-  G.MASK_ORDER.forEach((k, i) => {
+  const owned = G.MASK_ORDER.filter(k => G.meta.masks[k]);
+  owned.slice(0, 9).forEach((k, i) => {
     const d = document.createElement('div');
     d.className = 'slot';
-    const owned = G.meta.masks[k];
-    d.innerHTML = '<span class="key">' + (i + 1) + '</span>' + (owned ? MASK_EMOJI[k] : '<span class="unknown">?</span>');
+    d.innerHTML = '<span class="key">' + (i + 1) + '</span>' + G.SPECIES[k].emoji;
     if (G.player && G.player.mask === k) d.classList.add('active');
-    if (!owned) d.classList.add('locked');
     d.onclick = () => G.player.setMask(k);
     bar.appendChild(d);
   });
+  // dial button
+  const dial = document.createElement('div');
+  dial.className = 'slot dialbtn';
+  dial.innerHTML = '<span class="key">G</span>🎭';
+  dial.onclick = () => G.ui.toggleDial();
+  bar.appendChild(dial);
+  G.ownedMasks = owned;
+};
+G.ui.toggleDial = function (force) {
+  const el = $('maskdial');
+  const show = force !== undefined ? force : el.classList.contains('hidden');
+  el.classList.toggle('hidden', !show);
+  G.paused = show;
+  if (!show) return;
+  const grid = $('dialgrid');
+  grid.innerHTML = '';
+  for (const k of G.MASK_ORDER) {
+    const sp = G.SPECIES[k];
+    const owned = G.meta.masks[k];
+    const d = document.createElement('div');
+    d.className = 'dialslot' + (owned ? '' : ' locked') + (G.player.mask === k ? ' active' : '');
+    d.innerHTML = '<div class="de">' + (owned ? sp.emoji : '❓') + '</div><div class="dn">' +
+      (owned ? sp.name : '???') + '</div>' +
+      (owned ? '<div class="dt">' + sp.traits + '</div>' : '<div class="dt">' + 'T' + sp.tier + ' — study to unlock</div>');
+    if (owned) d.onclick = () => { G.ui.toggleDial(false); G.player.setMask(k); };
+    grid.appendChild(d);
+  }
+  const off = document.createElement('div');
+  off.className = 'dialslot' + (G.player.mask === 'none' ? ' active' : '');
+  off.innerHTML = '<div class="de">🙂</div><div class="dn">Stuart</div><div class="dt">bare-faced and brave</div>';
+  off.onclick = () => { G.ui.toggleDial(false); G.player.setMask('none'); };
+  grid.appendChild(off);
 };
 G.ui.showMaskBanner = function (name) {
   const b = $('maskbanner');
   if (name === 'none') { b.classList.remove('show'); return; }
-  b.textContent = MASK_EMOJI[name] + ' ' + G.SPECIES[name].name + ' form — ' + G.SPECIES[name].traits;
+  b.textContent = G.SPECIES[name].emoji + ' ' + G.SPECIES[name].name + ' form — ' + G.SPECIES[name].traits;
   b.classList.add('show');
   clearTimeout(G.ui._bt);
   G.ui._bt = setTimeout(() => b.classList.remove('show'), 4000);
 };
 
-// ----- study panel (floats over the animal) -----
+// ----- study panel -----
 G.ui.study = function (animal, pct, active) {
   const el = $('studypanel');
   if (!animal) { el.classList.add('hidden'); return; }
@@ -114,7 +154,8 @@ G.ui.study = function (animal, pct, active) {
   el.classList.remove('hidden');
   el.style.left = ((v.x * 0.5 + 0.5) * innerWidth) + 'px';
   el.style.top = ((-v.y * 0.5 + 0.5) * innerHeight) + 'px';
-  $('studyname').textContent = animal.sp.emoji + ' ' + animal.sp.name + (animal.stun > 0 ? ' (stunned!)' : '');
+  $('studyname').textContent = animal.sp.emoji + ' ' + animal.sp.name +
+    (animal.stun > 0 ? ' (stunned!)' : '') + ' ' + '⭐'.repeat(animal.sp.tier);
   $('studyfill').style.width = pct + '%';
   $('studyhint').textContent = active ? 'studying...' : 'hold E to study';
   el.classList.toggle('active', !!active);
@@ -123,37 +164,43 @@ G.ui.study = function (animal, pct, active) {
 // ----- objective line -----
 G.ui.objective = function () {
   const m = G.meta;
-  let txt;
-  if (!m.masks.frog && !m.masks.horse) {
-    if ((m.study.horse || 0) > 0 || (m.study.frog || 0) > 0) txt = 'Keep studying! Fill the meter to earn DNA.';
-    else txt = 'Explore! Study the horses in the plains or frogs by the ponds (hold E near them).';
-  } else if (!m.masks.frog) txt = 'Frogs live by pond shores — their legs would let you smash boulders and reach high ledges.';
-  else if (!m.masks.croc) txt = 'The swamp hides crocodiles. Study one from DRY LAND... then craft its mask to rule the water.';
-  else if (!m.masks.mouse) txt = 'Mice scurry in the plains. Crouch [C] and be patient — their mask lets you shrink!';
-  else if (!m.masks.scorpion) txt = 'Wear the Mouse Mask in the desert to finally study the tiny scorpions.';
-  else if (G.zooResidents.length < 5) txt = 'Fully study every species to fill the zoo.';
-  else txt = 'The zoo is complete! Guests are pouring in. Explore, or start a new expedition at the tent.';
+  let txt = G.quest && G.quest.objectiveText();
+  if (!txt) {
+    const studied = Object.keys(G.SPECIES).filter(k => (m.study[k] || 0) >= G.SPECIES[k].studyNeed).length;
+    if (!m.masks.croc) txt = 'The swamp crocs guard deep water. Study one from dry land to unlock the wetlands.';
+    else if (!m.masks.mouse) txt = 'Mice in the plains hold the key to shrinking — and to studying scorpions.';
+    else if (!m.masks.eagle && m.masks.scorpion) txt = 'Eagles roost on the mesa tops. Scorpion claws can climb those walls...';
+    else if (studied < 19) txt = 'Zoo: ' + studied + '/19 species. Keep studying — and keep the Guild off their backs.';
+    else txt = 'All 19 species safe in the zoo! The island is yours, Stuart.';
+  }
   $('objective').textContent = txt;
 };
 
-// ----- notebook (Tab) -----
+// ----- notebook -----
 G.ui.toggleNotebook = function (force) {
   const nb = $('notebook');
   const show = force !== undefined ? force : nb.classList.contains('hidden');
   nb.classList.toggle('hidden', !show);
   if (!show) return;
-  const rows = Object.keys(G.SPECIES).map(k => {
-    const sp = G.SPECIES[k];
-    const pct = Math.floor(G.meta.study[k] || 0);
-    const done = pct >= 100;
-    return '<div class="nb-row' + (done ? ' done' : '') + '">' +
-      '<div class="nb-head">' + sp.emoji + ' <b>' + sp.name + '</b>' +
-      '<span class="nb-pct">' + (done ? '✓ in zoo' : pct + '%') + '</span></div>' +
-      '<div class="nb-bar"><div style="width:' + Math.min(100, pct) + '%"></div></div>' +
-      '<div class="nb-hint">' + (done ? sp.traits : sp.hint) + '</div>' +
-      '</div>';
-  }).join('');
-  $('nbcontent').innerHTML = rows;
+  const tiers = { 1: [], 2: [], 3: [] };
+  Object.keys(G.SPECIES).forEach(k => tiers[G.SPECIES[k].tier].push(k));
+  let html = '';
+  for (const t of [1, 2, 3]) {
+    html += '<div class="nb-tier">' + '⭐'.repeat(t) + ' Tier ' + t + '</div>';
+    html += tiers[t].map(k => {
+      const sp = G.SPECIES[k];
+      const raw = Math.floor(G.meta.study[k] || 0);
+      const pct = Math.min(100, Math.floor(raw / sp.studyNeed * 100));
+      const done = raw >= sp.studyNeed;
+      return '<div class="nb-row' + (done ? ' done' : '') + '">' +
+        '<div class="nb-head">' + sp.emoji + ' <b>' + sp.name + '</b>' +
+        '<span class="nb-pct">' + (done ? '✓ in zoo' : pct + '%') + '</span></div>' +
+        '<div class="nb-bar"><div style="width:' + pct + '%"></div></div>' +
+        '<div class="nb-hint">' + (done ? sp.traits : sp.hint) + '</div>' +
+        '</div>';
+    }).join('');
+  }
+  $('nbcontent').innerHTML = html;
 };
 
 // ----- tent menu -----
@@ -161,12 +208,18 @@ const UPGRADES = [
   { id: 'journal', name: '📖 Field Journal', cost: 25, desc: 'Study animals 60% faster.' },
   { id: 'boots', name: '🥾 Padded Boots', cost: 30, desc: 'Animals notice you from much closer.' },
   { id: 'canteen', name: '🥤 Explorer Canteen', cost: 40, desc: '+2 max hearts, refills now.' },
-  { id: 'poster', name: '🪧 Zoo Poster', cost: 60, desc: 'More guests visit and they pay double.' }
+  { id: 'poster', name: '🪧 Zoo Poster', cost: 60, desc: 'Big boost to zoo appeal and guest pay.' }
 ];
-G.ui.openTent = function () {
+G.ui.openTent = function (tab) {
   G.paused = true;
   $('tent').classList.remove('hidden');
   G.ui.renderTent();
+  if (tab) {
+    document.querySelectorAll('.tenttabs button').forEach(x =>
+      x.classList.toggle('sel', x.dataset.tab === tab));
+    ['tentmasks', 'tentupgrades', 'tentzoo'].forEach(id =>
+      $(id).classList.toggle('hidden', id !== tab));
+  }
 };
 G.ui.closeTent = function () {
   G.paused = false;
@@ -174,20 +227,18 @@ G.ui.closeTent = function () {
 };
 G.ui.renderTent = function () {
   const m = G.meta;
-  // masks tab
   $('tentmasks').innerHTML = G.MASK_ORDER.map(k => {
     const sp = G.SPECIES[k];
     const hasDna = m.dna[k], has = m.masks[k];
     let btn;
     if (has) btn = '<span class="owned">crafted ✓</span>';
     else if (hasDna) btn = '<button data-craft="' + k + '">Craft Mask</button>';
-    else btn = '<span class="missing">needs DNA — study a ' + sp.name.toLowerCase() + '</span>';
+    else btn = '<span class="missing">' + '⭐'.repeat(sp.tier) + ' — needs DNA</span>';
     return '<div class="craftrow' + (has ? ' done' : '') + '">' +
-      '<div class="craft-ico">' + MASK_EMOJI[k] + '</div>' +
+      '<div class="craft-ico">' + sp.emoji + '</div>' +
       '<div class="craft-mid"><b>' + sp.name + ' Mask</b><br><small>' + sp.traits + '</small></div>' +
       '<div class="craft-act">' + btn + '</div></div>';
   }).join('');
-  // upgrades tab
   $('tentupgrades').innerHTML = UPGRADES.map(u => {
     const owned = m.upg[u.id];
     const afford = m.coins >= u.cost;
@@ -197,17 +248,21 @@ G.ui.renderTent = function () {
       '<div class="craft-mid"><b>' + u.name + '</b><br><small>' + u.desc + '</small></div>' +
       '<div class="craft-act">' + btn + '</div></div>';
   }).join('');
-  // zoo tab
-  const zooCount = G.zooResidents.length;
+  // zoo tab: per-zone report
+  const rows = G.zones.map(z => {
+    const lvl = (m.decor && m.decor[z.id]) || 0;
+    const names = z.residents.map(r => G.SPECIES[r.key].emoji).join(' ') || '<small>empty</small>';
+    return '<div class="craftrow"><div class="craft-mid"><b>' + z.label + '</b> ' + names +
+      '<br><small>decor ' + '🌷'.repeat(lvl) + (lvl ? '' : '— ask Cheryl') + '</small></div></div>';
+  }).join('');
   $('tentzoo').innerHTML =
-    '<p>🎪 <b>' + zooCount + ' / 5</b> species exhibited &nbsp;•&nbsp; 👥 ' + G.guests.length + ' guests right now</p>' +
-    '<p><small>Every fully-studied animal is sent here to the camp zoo. Guests wander in and drop coins while they watch. More species = more guests' + (m.upg.poster ? '' : ' (the Zoo Poster upgrade doubles income)') + '.</small></p>';
-  // wire buttons
+    '<p>🎪 <b>' + G.zooResidents.length + ' / 19</b> species exhibited · appeal ×' + G.zooAppeal().toFixed(2) +
+    ' · 👥 ' + G.guests.length + ' guests · 😵 ' + (m.poachersKO || 0) + ' poachers stopped</p>' + rows;
   $('tent').querySelectorAll('[data-craft]').forEach(b => b.onclick = () => {
     const k = b.dataset.craft;
     m.masks[k] = true;
     G.sfx.jingle();
-    G.toast('You crafted the ' + G.SPECIES[k].name + ' Mask! Press ' + (G.MASK_ORDER.indexOf(k) + 1) + ' to wear it.');
+    G.toast('You crafted the ' + G.SPECIES[k].name + ' Mask! Open the dial [G] to wear it.');
     G.save();
     G.ui.refreshHotbar();
     G.ui.renderTent();
@@ -217,7 +272,7 @@ G.ui.renderTent = function () {
     if (m.coins < u.cost) return;
     m.coins -= u.cost;
     m.upg[u.id] = true;
-    if (u.id === 'canteen') { G.player.maxHp = 8; G.player.hp = 8; G.ui.refreshHearts(); }
+    if (u.id === 'canteen') { G.player.maxHp += 2; G.player.hp = G.player.maxHp; G.ui.refreshHearts(); }
     G.sfx.jingle();
     G.ui.refreshCoins();
     G.save();
@@ -225,25 +280,30 @@ G.ui.renderTent = function () {
   });
 };
 
-// ----- prompt line ("E: enter tent" etc) -----
+// ----- prompt line -----
 G.ui.prompt = function (txt) {
   const el = $('prompt');
   if (!txt) { el.classList.add('hidden'); return; }
   el.textContent = txt;
   el.classList.remove('hidden');
+  if (G.isTouch) G.mobileInteractLabel && G.mobileInteractLabel(txt);
 };
 
-// ----- minimap overlay -----
+// ----- minimap -----
 G.ui.drawMinimap = function (P) {
   const cv = $('map'), ctx = cv.getContext('2d'), N = cv.width;
   ctx.clearRect(0, 0, N, N);
   ctx.drawImage($('mapbase'), 0, 0);
   const toMap = (x, z) => [(x / G.MAP + 0.5) * N, (z / G.MAP + 0.5) * N];
-  // tent
+  // poacher camps
+  ctx.fillStyle = '#3d2c1c';
+  for (const c of G.camps) {
+    const [cx, cy] = toMap(c.x, c.z);
+    ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 7); ctx.fill();
+  }
   let [tx, ty] = toMap(G.tentPos.x, G.tentPos.z);
   ctx.font = '10px sans-serif';
   ctx.fillText('⛺', tx - 5, ty + 4);
-  // player
   const [px, py] = toMap(P.pos.x, P.pos.z);
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fill();
@@ -251,7 +311,7 @@ G.ui.drawMinimap = function (P) {
   ctx.beginPath(); ctx.arc(px, py, 2.6, 0, 7); ctx.fill();
 };
 
-// ----- big unlock banner -----
+// ----- big banner -----
 G.ui.bigBanner = function (title, sub) {
   $('bigtitle').textContent = title;
   $('bigsub').textContent = sub;

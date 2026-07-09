@@ -1,73 +1,106 @@
 # 🎭 Wildmask
 
-*A cozy open-world creature-study roguelike — in the chunky pastel style of a 3DS game.*
-
-You're a field researcher dropped onto a **procedurally generated island**. Study the
-wild animals, extract their DNA, craft **animal masks** at your field tent, and transform
-into human-animal hybrids whose abilities unlock more and more of the island's terrain —
-and the habitats of animals you couldn't reach before.
+*A cozy low-poly open-world roguelike in the style of a 3DS game.*
+**You are Stuart Diver**, field agent of the Wildmask Sanctuary Project. Study wild animals,
+craft their DNA into masks, transform into human-animal hybrids — and fight the
+**Poachers Guild** to protect the island's wildlife.
 
 ![Camp](docs/camp.png)
 
 ## ▶️ How to play
 
-**Just open `index.html` in any modern browser.** No install, no build step, no server
-needed — everything (including Three.js) is bundled in the repo.
+**Open `index.html` in any modern browser** — no install, no build. Everything (including
+Three.js) is bundled. On a phone, see [Mobile & install](#-mobile--install) below.
 
 ## 🔄 The loop
 
-1. **Explore** the island: plains, desert with sheer mesas, murky swamps, ponds, rocky
-   terraces and a surrounding ocean. Every expedition generates a brand-new island.
-2. **Study animals** — sneak close (crouch!) and **hold E** to fill their research meter.
-   Partial progress is saved forever, even if they flee.
-3. At 100%, you gain the species' **DNA**, and that animal is **sent to the zoo** at your
-   base camp.
-4. **Craft its mask** at the field tent ⛺ and wear it to transform.
-5. **Zoo guests** wander into camp to see your exhibited animals and pay coins — spend
-   them on tent upgrades (faster studying, quieter boots, more hearts, more guests).
-6. If your hearts run out, the expedition ends… a **new island forms**, but your masks,
-   zoo, coins and research all carry over (saved in your browser).
+1. **Explore** a procedurally generated island: plains, **forest**, desert mesas, swamps,
+   ponds, rocky highlands and open ocean. Every expedition makes a new island.
+2. **Study animals** — crouch, sneak close, **hold E**. Rarer/stronger animals take much
+   longer to study (a fox is quick; a honey badger is a marathon). Progress is saved even
+   if they flee. Nocturnal animals (owl, wolf) only appear at night.
+3. At 100% you gain the species' **DNA** and it's sent to a safe **enclosure** in your camp
+   zoo. **Guests** tour occupied enclosures and pay coins.
+4. **Craft its mask** at Tia's tent and wear it (mask dial, **G**) to transform.
+5. **Defend the wildlife.** The Poachers Guild patrols with nets and rifles, caging animals
+   and hauling them to camps. Break their cages, knock the poachers out, and each mask
+   gives you a distinct **fighting style**.
+6. Death ends the expedition and reseeds the island — but masks, zoo, coins, research,
+   plants and recipes all persist (saved in your browser).
 
-![Studying a horse](docs/studying.png)
+![Meet Tia](docs/tia.png)
 
-## 🎭 The masks
+## 🧑‍🤝‍🧑 Your camp
 
-| Mask | Found in | Transformation |
-|------|----------|----------------|
-| 🐸 **Frog** | pond & swamp shores | Jump sky-high; **Power Kick [F]** smashes cracked boulders (coins inside!) and hops up rocky terraces |
-| 🐴 **Horse** | open plains | Gallop at incredible speed with barely any stamina drain |
-| 🐊 **Crocodile** | swamp water | Swim fast with near-endless breath — and still walk on land. Crocs treat you as kin and won't bite |
-| 🐭 **Mouse** | plains | **Shrink** to tiny size: study small creatures and squeeze through the burrow network (fast travel!) |
-| 🦂 **Scorpion** | desert | Tiny size, **Wall Crawl** up sheer mesa cliffs, and **Venom Claws [F]** that stun animals so they can't flee while you study them |
+| Character | Role |
+|-----------|------|
+| **Tia** 🧪 | Invented the DNA mask press. Briefs you, and crafts masks from the DNA you collect. |
+| **Cheryl** 🌼 | Botanist. Bring her wild **plants** (they glow, one type per biome) and she decorates enclosures — raising zoo appeal and guest income. |
+| **Montana** 🍲 | Chef. Cooks **ingredients** — from crates the Guild leaves behind, or animals taken in self-defense — into buff dishes (heal, +max hearts, +attack, +breath). |
 
-The island gates itself naturally: deep water drowns you without the croc, mesas are
-unclimbable without the scorpion, scorpions are *literally too small to observe* until
-you can shrink with the mouse mask, and crocodiles bite swimmers — study them from dry
-land first.
+## 🎭 The 19 masks & fighting styles
 
-![Frog mask](docs/frogmask.png) ![Field tent](docs/tent.png)
+Every studied species becomes a mask with a **movement power** and a **combat style**.
 
-## 🎮 Controls
+**⭐ Tier 1 (quick study)** — 🦊 Fox *(tutorial: dash-strike + full-speed bush stealth)*,
+🐰 Rabbit *(double-jump)*, 🦌 Deer *(long leaps, antler charge)*, 🐸 Frog *(sky-high jump,
+boulder-smashing kick)*, 🐴 Horse *(tireless gallop)*.
+
+**⭐⭐ Tier 2** — 🐭 Mouse *(shrink + burrows)*, 🐢 Tortoise *(shell-guard block)*,
+🦦 Otter *(fast swim)*, 🐍 Cobra *(ranged venom spit)*, 🐒 Monkey *(thrown fruit)*,
+🐐 Mountain Goat *(climb any cliff, ram)*, 🛡️ Armadillo *(armored roll)*, 🦉 Owl
+*(glide + night vision)*, 🦂 Scorpion *(wall-crawl, venom stun)*, 🐊 Crocodile *(swim,
+huge breath, vice bite)*.
+
+**⭐⭐⭐ Tier 3 (rare & strong)** — 🐺 Wolf *(tireless sprint, **howl [V]** scatters poachers)*,
+🦅 Eagle *(glide + mid-air dive-bomb)*, 🐻 **Bear** *(massive swipes, huge knockback,
+smashes boulders bare-handed)*, 🦡 **Honey Badger** *(blinding claw flurry, iron hide,
+venom-immune — the hardest study on the island)*.
+
+The island gates itself: deep water drowns you without the croc; mesas need scorpion/goat
+climbing; scorpions are too small to observe until you shrink with the mouse; crocs bite
+swimmers, so study them from dry land first.
+
+![Mask dial](docs/maskdial.png)
+![Fighting the Guild](docs/poacher.png)
+
+## 📱 Mobile & install
+
+![Mobile controls](docs/mobile.png)
+
+- **Touch controls** appear automatically on phones/tablets: left thumb = virtual joystick
+  (slam it to sprint), right thumb = camera (pinch to zoom), on-screen buttons for
+  jump / attack / interact / mask dial / crouch / howl / notebook.
+- **Install as an app (PWA):** open the game's URL on your Pixel (or any phone) in Chrome →
+  menu → **Add to Home screen**. It installs with an icon and runs fullscreen & offline.
+- **Android APK:** every push builds a debug APK via GitHub Actions
+  (`.github/workflows/apk.yml`, Capacitor). Grab it from the **Actions** tab → latest
+  *Build Android APK* run → **Artifacts → `wildmask-debug-apk`**, then install the `.apk`
+  on your phone (enable "install unknown apps" for your browser/files app).
+- **Hosting:** `.github/workflows/pages.yml` deploys the repo to GitHub Pages so you have a
+  URL to open and install from.
+
+## 🎮 Controls (keyboard)
 
 | Key | Action |
 |-----|--------|
 | `W A S D` | move |
-| `Shift` | sprint (stamina) |
-| `Space` | jump |
-| `C` | crouch / sneak (animals notice you much less) |
-| `E` (hold) | study animal · enter tent · use burrow |
-| `F` | frog kick / scorpion venom claws |
-| `1–5` | wear a mask (press again or `X` to remove) |
+| `Shift` | sprint (armadillo → roll) |
+| `Space` | jump · double-jump (rabbit) · **hold to glide** (owl/eagle) |
+| `C` | crouch / sneak / tortoise shell-guard |
+| `E` (hold) | study · talk · pick plants · use burrow |
+| `F` | attack — differs per mask (dash, spit, dive, kick…) |
+| `V` | special (wolf howl) |
+| `G` / `1–9` / `X` | mask dial / quick-wear / remove |
 | `Tab` / `N` | research notebook |
-| mouse drag / `Q` `R` / wheel | camera |
-| `H` | help |
+| drag / `Q` `R` / wheel | camera |
 
 ## 🛠 Tech
 
-- Plain HTML + JS, Three.js (vendored, r149) — runs from `file://`, zero dependencies.
-- The whole island is one **analytic noise function** shared by the renderer, the
-  physics, the animal AI and the minimap — no collision meshes.
-- The signature 3DS "rolling world" look is a tiny vertex-shader patch applied to every
-  material, curling geometry down with view distance (plus vertex-colored terrain, soft
-  fog, pastel palette, and a day/night cycle).
-- Meta progression persists in `localStorage`; each run reseeds the world.
+- Plain HTML + JS + Three.js (vendored, r149). Runs from `file://`; zero runtime deps.
+- The island is one **analytic noise function** (`js/world.js` `G.sample`) shared by the
+  renderer, physics, animal AI, poacher AI and minimap — no collision meshes.
+- Every mesh is chunky spheres/boxes/cones with flat pastel Lambert colors; the signature
+  3DS "rolling world" horizon is a per-material vertex-shader patch (`G.curve`).
+- Files: `util · world · animal_builders · animals · combat · player · npcs · ui · mobile
+  · main`. Meta progression persists in `localStorage`; each run reseeds the world.
