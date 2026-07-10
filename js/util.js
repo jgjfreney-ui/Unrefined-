@@ -45,22 +45,41 @@ G.fbm = function (x, z, oct, s) {
   return sum / norm;
 };
 
-// ----- curved world (the "rolling log" 3DS look) -----
+// ----- curved world (the "rolling log" 3DS look) + wind sway -----
 // Every material gets its vertex shader patched so geometry drops away with
 // view-space distance, like Animal Crossing's world curling over the horizon.
+// Foliage materials additionally sway on a shared time uniform.
 G.CURVE = 0.0016;
-const CURVE_CHUNK = [
-  'vec4 mvPosition = vec4( transformed, 1.0 );',
-  '#ifdef USE_INSTANCING',
-  '  mvPosition = instanceMatrix * mvPosition;',
-  '#endif',
-  'mvPosition = modelViewMatrix * mvPosition;',
-  'mvPosition.y -= mvPosition.z * mvPosition.z * ' + G.CURVE.toFixed(5) + ';',
-  'gl_Position = projectionMatrix * mvPosition;'
-].join('\n');
-G.curve = function (mat) {
+G.wind = { value: 0 }; // shared time uniform, ticked from the main loop
+function patchChunk(windAmt) {
+  const lines = [
+    'vec4 wpos = vec4( transformed, 1.0 );',
+    '#ifdef USE_INSTANCING',
+    '  wpos = instanceMatrix * wpos;',
+    '#endif'
+  ];
+  if (windAmt) {
+    lines.push(
+      'float swy = max(0.0, transformed.y);',
+      'float sw = sin(uTime * 1.7 + wpos.x * 0.17 + wpos.z * 0.13) * ' + windAmt.toFixed(3) + ' * swy;',
+      'wpos.x += sw;',
+      'wpos.z += sw * 0.6 + cos(uTime * 1.1 + wpos.x * 0.11) * ' + (windAmt * 0.4).toFixed(3) + ' * swy;'
+    );
+  }
+  lines.push(
+    'vec4 mvPosition = modelViewMatrix * wpos;',
+    'mvPosition.y -= mvPosition.z * mvPosition.z * ' + G.CURVE.toFixed(5) + ';',
+    'gl_Position = projectionMatrix * mvPosition;'
+  );
+  return lines.join('\n');
+}
+G.curve = function (mat, windAmt) {
   mat.onBeforeCompile = function (sh) {
-    sh.vertexShader = sh.vertexShader.replace('#include <project_vertex>', CURVE_CHUNK);
+    sh.vertexShader = sh.vertexShader.replace('#include <project_vertex>', patchChunk(windAmt));
+    if (windAmt) {
+      sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader;
+      sh.uniforms.uTime = G.wind;
+    }
   };
   return mat;
 };
@@ -69,7 +88,8 @@ G.curve = function (mat) {
 const _matCache = {};
 G.mat = function (color, opts) {
   opts = opts || {};
-  const key = color + '|' + (opts.key || '') + (opts.transparent ? 'T' + opts.opacity : '') + (opts.emissive || '');
+  const key = color + '|' + (opts.key || '') + (opts.transparent ? 'T' + opts.opacity : '') +
+    (opts.emissive || '') + (opts.wind ? 'W' + opts.wind : '');
   if (_matCache[key]) return _matCache[key];
   const m = new THREE.MeshLambertMaterial({
     color: color,
@@ -77,7 +97,7 @@ G.mat = function (color, opts) {
     opacity: opts.opacity !== undefined ? opts.opacity : 1,
     emissive: opts.emissive || 0x000000
   });
-  G.curve(m);
+  G.curve(m, opts.wind || 0);
   _matCache[key] = m;
   return m;
 };

@@ -178,49 +178,87 @@ G.buildProps = function (scene) {
       swampSpots.push({ p, h: smp.h, s: 0.8 + rand() * 0.6 });
     }
   }
-  function instanced(geoFn, colorHex, spots, place) {
+  // instanced scatter with optional wind sway + per-instance color variation
+  const jitCol = new THREE.Color();
+  function instanced(geoFn, colorHex, spots, place, opts) {
     if (!spots.length) return;
+    opts = opts || {};
     const g = geoFn();
-    const m = new THREE.InstancedMesh(g, G.mat(colorHex, { key: 'inst' + colorHex + g.uuid }), spots.length);
+    const m = new THREE.InstancedMesh(g,
+      G.mat(colorHex, { key: 'inst' + colorHex + g.uuid, wind: opts.wind || 0 }), spots.length);
     m.castShadow = true;
-    spots.forEach((sp, i) => { place(sp, dummy); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); });
+    spots.forEach((sp, i) => {
+      place(sp, dummy); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
+      if (opts.jitter) {
+        jitCol.setRGB(1, 1, 1).offsetHSL((rand() - 0.5) * 0.03, 0, (rand() - 0.5) * opts.jitter);
+        m.setColorAt(i, jitCol);
+      }
+    });
     m.instanceMatrix.needsUpdate = true;
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
     scene.add(m);
   }
-  // plains trees
+  // plains trees: trunk + layered two-blob canopy
   instanced(() => new THREE.CylinderGeometry(0.28, 0.4, 2.4, 7), 0x8a6239, treeSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 1.1, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, sp.s * 9, 0);
   });
   instanced(() => new THREE.SphereGeometry(1.7, 9, 7), 0x58ab4a, treeSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 2.4 + sp.s, sp.p.z); d.scale.set(sp.s * 1.15, sp.s, sp.s * 1.15); d.rotation.set(0, 0, 0);
-  });
-  // forest trees: taller, darker, denser
+  }, { wind: 0.06, jitter: 0.16 });
+  instanced(() => new THREE.SphereGeometry(1.0, 8, 6), 0x6cbf58, treeSpots, (sp, d) => {
+    d.position.set(sp.p.x + sp.s * 0.7, sp.h + 3.1 + sp.s, sp.p.z + sp.s * 0.3);
+    d.scale.setScalar(sp.s * 0.8); d.rotation.set(0, 0, 0);
+  }, { wind: 0.09, jitter: 0.16 });
+  // forest trees: taller, darker, layered
   instanced(() => new THREE.CylinderGeometry(0.3, 0.45, 3.4, 7), 0x6f4e2c, forestTreeSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 1.6, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, sp.s * 9, 0);
   });
   instanced(() => new THREE.SphereGeometry(1.8, 9, 7), 0x3f8f3a, forestTreeSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 3.3 + sp.s, sp.p.z); d.scale.set(sp.s * 1.1, sp.s * 1.15, sp.s * 1.1); d.rotation.set(0, 0, 0);
-  });
+  }, { wind: 0.06, jitter: 0.18 });
+  instanced(() => new THREE.SphereGeometry(1.1, 8, 6), 0x4da045, forestTreeSpots, (sp, d) => {
+    d.position.set(sp.p.x - sp.s * 0.6, sp.h + 4.4 + sp.s, sp.p.z + sp.s * 0.4);
+    d.scale.setScalar(sp.s * 0.75); d.rotation.set(0, 0, 0);
+  }, { wind: 0.1, jitter: 0.18 });
   // cacti
   instanced(() => THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.45, 1.6, 4, 8) : new THREE.CylinderGeometry(0.45, 0.5, 2.2, 8), 0x4f9948, cactusSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 1.0 * sp.s, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, sp.s * 7, 0);
-  });
+  }, { jitter: 0.12 });
   // swamp trees
   instanced(() => new THREE.CylinderGeometry(0.18, 0.3, 3.2, 6), 0x5d4a33, swampSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 1.5, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, 0, 0);
   });
   instanced(() => new THREE.SphereGeometry(1.5, 8, 6), 0x46703c, swampSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 3.0 * sp.s, sp.p.z); d.scale.set(sp.s * 1.3, sp.s * 0.7, sp.s * 1.3); d.rotation.set(0, 0, 0);
-  });
-  // grass tufts
+  }, { wind: 0.07, jitter: 0.15 });
+  // grass tufts — the whole meadow breathes in the wind
   instanced(() => new THREE.ConeGeometry(0.16, 0.55, 5), 0x66b84e, tuftSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 0.22, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(rand() * 0.3, rand() * 6, 0);
-  });
-  // bushes (stealth!) — a cluster of squashed blobs
+  }, { wind: 0.3, jitter: 0.22 });
+  // wildflowers
+  const flowerSpots = tuftSpots.filter((s, i) => i % 5 === 0);
+  instanced(() => new THREE.CylinderGeometry(0.03, 0.04, 0.4, 4), 0x4c8a3e, flowerSpots, (sp, d) => {
+    d.position.set(sp.p.x + 0.4, sp.h + 0.2, sp.p.z + 0.2); d.scale.setScalar(sp.s); d.rotation.set(0, 0, 0);
+  }, { wind: 0.3 });
+  instanced(() => new THREE.SphereGeometry(0.14, 6, 5), 0xffffff, flowerSpots, (sp, d) => {
+    d.position.set(sp.p.x + 0.4, sp.h + 0.42 * sp.s, sp.p.z + 0.2); d.scale.set(sp.s, sp.s * 0.7, sp.s); d.rotation.set(0, 0, 0);
+  }, { wind: 0.3, jitter: 0, hue: true, place2: true });
+  // hand-hue the flower heads
+  {
+    const fl = scene.children[scene.children.length - 1];
+    if (fl && fl.isInstancedMesh) {
+      for (let i = 0; i < flowerSpots.length; i++) {
+        jitCol.setHSL(rand(), 0.75, 0.72);
+        fl.setColorAt(i, jitCol);
+      }
+      if (fl.instanceColor) fl.instanceColor.needsUpdate = true;
+    }
+  }
+  // bushes (stealth!)
   instanced(() => new THREE.SphereGeometry(1.0, 8, 6), 0x468a3e, bushSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 0.55 * sp.s, sp.p.z);
     d.scale.set(sp.s * 1.25, sp.s * 0.75, sp.s * 1.25); d.rotation.set(0, rand() * 6, 0);
-  });
+  }, { wind: 0.12, jitter: 0.15 });
   bushSpots.forEach(sp => G.bushes.push({ x: sp.p.x, z: sp.p.z, r: sp.s * 1.3 }));
 
   // --- gatherable plants for Cheryl ---

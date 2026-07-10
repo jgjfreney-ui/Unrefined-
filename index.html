@@ -164,6 +164,28 @@
   #gameover { z-index: 30; background: rgba(40,25,15,.8); }
   #gameover .sheet { text-align: center; }
 
+  /* cutscene letterbox: hide the HUD while the camera has the stage */
+  body.cine #hearts, body.cine #coinbox, body.cine #mapwrap, body.cine #hotbar,
+  body.cine #objective, body.cine #musicbtn, body.cine .tbtn, body.cine .bar,
+  body.cine #joy { display: none !important; }
+  /* cutscene letterbox */
+  #cinebars::before, #cinebars::after { content: ''; position: fixed; left: 0; right: 0;
+    height: 11vh; background: #1a130c; z-index: 8; }
+  #cinebars::before { top: 0; } #cinebars::after { bottom: 0; }
+  #cineskip { position: fixed; right: 18px; bottom: calc(11vh + 12px); z-index: 9; opacity: .85; }
+
+  /* ✕ close for every sheet */
+  .xclose { position: absolute; top: 10px; right: 12px; width: 40px; height: 40px;
+    border-radius: 50%; font-size: 18px; padding: 0; line-height: 1; }
+  .sheet { position: relative; }
+
+  /* tutorial pulse on touch buttons */
+  .tbtn.pulse { animation: btnpulse 1s infinite; border-color: #6fc45f; }
+  @keyframes btnpulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(111,196,95,.7); }
+    50% { transform: scale(1.12); box-shadow: 0 0 0 12px rgba(111,196,95,0); }
+  }
+
   /* --- touch controls --- */
   #joy { position: fixed; width: 140px; height: 140px; border-radius: 50%;
     background: rgba(253,246,227,.25); border: 3px solid rgba(253,246,227,.5); z-index: 6; pointer-events: none; }
@@ -211,6 +233,8 @@
 </div>
 <div id="toasts"></div>
 <div id="dmgflash"></div>
+<div id="cinebars" class="hidden"></div>
+<button id="cineskip" class="hidden">skip ▸▸</button>
 <div id="bigbanner" class="panel hidden"><div id="bigtitle"></div><div id="bigsub"></div></div>
 
 <!-- dialogue -->
@@ -234,13 +258,9 @@
 <div id="intro" class="overlay">
   <div class="sheet panel">
     <h1>🎭 Wildmask</h1>
-    <p>You are <b>Stuart Diver</b> — field agent of the Wildmask Sanctuary Project. The
-      <b>Poachers Guild</b> is stripping these islands bare, and <b>Tia</b>'s DNA mask press is the
-      only thing that can stop them.</p>
-    <p><b>Study animals</b> (crouch, sneak close, hold <b>E</b>) to earn their DNA and send them to
-      the safety of your camp <b>zoo</b>. <b>Craft masks</b> from DNA and transform — every one of the
-      <b>19 species</b> gives you a movement power <i>and</i> a fighting style. Fight off poachers,
-      break their cages, collect plants for <b>Cheryl</b>, and bring ingredients to <b>Montana</b>'s kitchen.</p>
+    <p><b>Stuart Diver. Anti-Poaching Division.</b> One island, 19 wild species, and a
+      Poachers Guild that wants them all in cages. Study animals, wear their masks,
+      fight like them — and build the zoo where the Guild can't reach.</p>
     <div class="keys" id="pckeys">
       <b>W A S D</b><span>move</span>
       <b>Shift</b><span>sprint</span>
@@ -263,6 +283,7 @@
 <!-- help -->
 <div id="help" class="overlay hidden">
   <div class="sheet panel">
+    <button class="xclose">✕</button>
     <h2>Controls</h2>
     <div class="keys">
       <b>W A S D</b><span>move</span>
@@ -284,6 +305,7 @@
 <!-- tent -->
 <div id="tent" class="overlay hidden">
   <div class="sheet panel">
+    <button class="xclose">✕</button>
     <h2>⛺ Field Tent — Tia's Lab</h2>
     <div class="tenttabs">
       <button class="sel" data-tab="tentmasks">🎭 Masks</button>
@@ -303,6 +325,7 @@
 <!-- mask dial -->
 <div id="maskdial" class="overlay hidden">
   <div class="sheet panel">
+    <button class="xclose">✕</button>
     <h2>🎭 Mask Dial</h2>
     <div id="dialgrid"></div>
     <div class="cornerbtns"><button id="dialclose">close</button></div>
@@ -312,9 +335,9 @@
 <!-- notebook -->
 <div id="notebook" class="overlay hidden">
   <div class="sheet panel">
+    <button class="xclose">✕</button>
     <h2>📓 Research Notebook</h2>
     <div id="nbcontent"></div>
-    <p style="font-size:12px;color:#a08c68">Tab to close</p>
   </div>
 </div>
 
@@ -334,6 +357,7 @@
 <script src="js/animals.js"></script>
 <script src="js/combat.js"></script>
 <script src="js/player.js"></script>
+<script src="js/cutscene.js"></script>
 <script src="js/npcs.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/mobile.js"></script>

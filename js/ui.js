@@ -27,12 +27,28 @@ G.ui.init = function () {
     G.music.start();
     $('intro').classList.add('hidden');
     G.started = true;
-    if ((G.meta.quest || 0) === 0) G.toast('Find Tia by the orange tent — she has your briefing.');
+    if (!G.meta.seenIntro) {
+      G.cutscene.start(() => {
+        const tia = G.npcs.find(n => n.id === 'tia');
+        if (tia) G.talkTo(tia);
+      });
+    } else if ((G.meta.quest || 0) === 0) {
+      G.toast('Find Tia by the orange tent — she has your briefing.');
+    }
   };
+  $('cineskip').onclick = () => G.cutscene.finish();
   $('musicbtn').onclick = () => {
     const m = G.music.toggleMute();
     $('musicbtn').textContent = m ? '🔇' : '🎵';
   };
+  // mobile-friendly closing: ✕ buttons + tap outside the sheet
+  const closers = { tent: () => G.ui.closeTent(), maskdial: () => G.ui.toggleDial(false), notebook: () => G.ui.toggleNotebook(false), help: () => $('help').classList.add('hidden') };
+  for (const id in closers) {
+    const ov = $(id);
+    ov.addEventListener('click', e => { if (e.target === ov) closers[id](); });
+    const x = ov.querySelector('.xclose');
+    if (x) x.onclick = closers[id];
+  }
   $('btnHelp').onclick = () => $('help').classList.toggle('hidden');
   $('helpClose').onclick = () => $('help').classList.add('hidden');
   $('tentClose').onclick = () => G.ui.closeTent();
@@ -314,6 +330,15 @@ G.ui.drawMinimap = function (P) {
   ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fill();
   ctx.fillStyle = '#e8482c';
   ctx.beginPath(); ctx.arc(px, py, 2.6, 0, 7); ctx.fill();
+};
+
+// ----- tutorial button pulsing (draws the thumb to the right control) -----
+G.ui.pulseBtn = function (id) {
+  document.querySelectorAll('.tbtn.pulse').forEach(b => b.classList.remove('pulse'));
+  if (id) {
+    const el = $(id);
+    if (el) el.classList.add('pulse');
+  }
 };
 
 // ----- big banner -----

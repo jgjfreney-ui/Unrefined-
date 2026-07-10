@@ -247,9 +247,14 @@ class Poacher {
   update(dt, P) {
     if (this.state === 'ko') {
       this.timer -= dt;
+      if (this.stars) {
+        this.stars.rotation.y += dt * 4;
+        this.stars.position.set(this.pos.x, this.pos.y + 0.9, this.pos.z);
+      }
       if (this.timer <= 0) {
         G.scene.remove(this.mesh);
         if (this.beam) G.scene.remove(this.beam);
+        if (this.stars) G.scene.remove(this.stars);
         this.dead = true;
       }
       return;
@@ -370,6 +375,8 @@ G.damagePoacher = function (p, dmg, kbDir, kb) {
     p.dropCage();
     if (p.beam) p.beam.visible = false;
     p.mesh.rotation.x = Math.PI / 2 * 0.9; // out cold
+    p.stars = G.makeKOStars();
+    if (G.fx) G.fx.burst(p.pos);
     const n = 2 + Math.floor(Math.random() * 3);
     for (let i = 0; i < n; i++)
       G.spawnCoin(G.scene, p.pos.x + (Math.random() - 0.5) * 2, p.pos.z + (Math.random() - 0.5) * 2, p.pos.y + 0.5);

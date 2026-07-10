@@ -328,6 +328,12 @@ class Animal {
     else if (this.state !== 'idle')
       y += Math.abs(Math.sin(this.bob * 10)) * 0.06;
     this.pos.y += (y - this.pos.y) * Math.min(1, dt * 12);
+    // waddle while trotting, ease flat when settled
+    if (this.stun <= 0) {
+      const target = (this.state === 'walk' || this.state === 'flee' || this.state === 'chase')
+        ? Math.sin(this.bob * 12) * 0.06 : 0;
+      this.mesh.rotation.z += (target - this.mesh.rotation.z) * Math.min(1, dt * 10);
+    }
   }
 }
 G.Animal = Animal;

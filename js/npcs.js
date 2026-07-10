@@ -182,6 +182,7 @@ function coach(id, msg) {
 }
 G.updateTutorial = function (dt, P) {
   const st = G.quest.stage;
+  let pulse = null;
   if (st === 1) {
     const f = G.tutorialFox;
     if (!f || !f.alive) { G.setBeacon(null); return; }
@@ -193,9 +194,12 @@ G.updateTutorial = function (dt, P) {
     if (t.sub === 2 && d < f.sp.studyR) { t.sub = 3; coach('range', 'In range! Hold E (👁) and keep your eyes on it.'); }
     if (t.sub === 3 && (G.meta.study.fox || 0) > 15) { t.sub = 4; coach('meter', 'That\'s DNA sequencing! Stay with it until the meter fills.'); }
     if (t.sub >= 1 && G.tutorial.seen.spot && d > 26 && f.state === 'flee') coach('fled', 'It bolted! No worries — your progress is saved. Sneak back in.');
+    if (t.sub === 1) pulse = 'tbCrouch';
+    else if (t.sub >= 3) pulse = 'tbAct';
   } else if (st === 2) {
     const tia = G.npcs.find(n => n.id === 'tia');
     G.setBeacon(tia ? { pos: tia.mesh.position } : null);
+    if (G.meta.masks.fox) pulse = 'tbMask';
   } else if (st === 3) {
     if (!G._tutPoacherSpawned) {
       G._tutPoacherSpawned = true;
@@ -206,9 +210,12 @@ G.updateTutorial = function (dt, P) {
     }
     const p = G._tutPoacher;
     G.setBeacon(p && !p.dead && p.state !== 'ko' ? p : null);
+    if (P.mask !== 'fox') pulse = 'tbMask';
+    else pulse = 'tbAtk';
   } else {
     G.setBeacon(null);
   }
+  if (pulse !== G._pulsed) { G._pulsed = pulse; G.ui.pulseBtn(pulse); }
 };
 
 // ----- Tia -----
@@ -216,11 +223,12 @@ function talkTia() {
   const s = G.quest.stage;
   if (s === 0) {
     G.dialog.open('Tia', '🧪', [
-      'Stuart Diver! Right on time. I\'m <b>Tia</b> — welcome to the Sanctuary Project.',
-      'The short of it: the <b>Poachers Guild</b> landed with rifles, nets and quotas, and this island\'s animals need a bodyguard. That\'s you.',
-      'Your edge is my invention — the <b>DNA mask press</b>. Study an animal long enough and I can press its DNA into a mask. Wear it, and you move like it, <i>fight</i> like it.',
-      'Lesson one. See that <b>golden beacon</b>? I tagged a <b>fox</b> at the forest edge just north. Follow it.',
-      'When you get close: <b>crouch</b> so it doesn\'t bolt, creep in, then <b>hold E</b> while you watch it. Fill the meter and its DNA is ours — and the fox earns a safe pen in our zoo.',
+      'Thank god. The <b>Anti-Poaching Division</b> is here.',
+      'That flip out of the jeep? The yo-yo? ...Okay, Stuart Diver, you\'ll do nicely. I\'m <b>Tia</b> — sanctuary tech lead.',
+      'That fox you just saved is exactly why I called for you. The <b>Poachers Guild</b> is stripping this island bare — and while your yo-yo is impressive, I can offer you something better.',
+      'My invention: the <b>DNA mask press</b>. Study an animal long enough and I can press its DNA into a mask. Wear it, and you move like it — you <i>fight</i> like it.',
+      'And you\'re going to be my test pilot. See that <b>pillar of light</b>? I tagged that same fox as it ran for the trees. Follow the beacon.',
+      'When you get close: <b>crouch</b> so it doesn\'t bolt, creep in, then <b>hold E</b> while you watch it. Fill the meter and its DNA is ours — and the fox earns a safe pen in our zoo, where the Guild can never touch it.',
       'Off you go, ranger. I\'ll press your first mask the moment you\'re back.'
     ], null, VOICES.tia);
     G.quest.advance(1);

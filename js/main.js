@@ -78,9 +78,16 @@ for (const k in G.meta.zoo) if (G.meta.zoo[k]) G.addZooResident(scene, k);
 for (const z of G.zones) G.buildZoneDecor(z);
 G.ui.init();
 
-// guide beacon: golden bouncing marker over tutorial targets
+// guide beacon: a golden pillar of light reaching into the sky
 const beacon = new THREE.Group();
 {
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.8, 70, 10, 1, true),
+    G.curve(new THREE.MeshLambertMaterial({
+      color: 0xffe27a, emissive: 0xc9a428, transparent: true, opacity: 0.32,
+      side: THREE.DoubleSide, depthWrite: false
+    })));
+  pillar.position.y = 35;
+  beacon.add(pillar);
   const c = new THREE.Mesh(G.geo.cone, G.mat(0xffd94d, { emissive: 0x8a6a00, key: 'beacon' }));
   c.scale.set(0.5, 0.9, 0.5);
   c.rotation.x = Math.PI;
@@ -93,6 +100,71 @@ const beacon = new THREE.Group();
 beacon.visible = false;
 scene.add(beacon);
 G.setBeacon = t => { G._beaconT = t; };
+
+// ----- little FX pool: dust puffs, water ripples -----
+G.fx = (() => {
+  const items = [];
+  const puffGeo = new THREE.SphereGeometry(1, 6, 5);
+  const ringGeo = new THREE.TorusGeometry(1, 0.06, 5, 16);
+  function spawn(geo, color, opacity) {
+    const mat = G.curve(new THREE.MeshLambertMaterial({ color, transparent: true, opacity }));
+    const m = new THREE.Mesh(geo, mat);
+    scene.add(m);
+    return m;
+  }
+  return {
+    dust(pos, n) {
+      for (let i = 0; i < (n || 1); i++) {
+        const m = spawn(puffGeo, 0xd9cba4, 0.65);
+        m.position.set(pos.x + (Math.random() - 0.5) * 0.6, pos.y + 0.15, pos.z + (Math.random() - 0.5) * 0.6);
+        m.scale.setScalar(0.12 + Math.random() * 0.1);
+        items.push({ m, life: 0.55, max: 0.55, vy: 0.8 + Math.random() * 0.6, grow: 1.6 });
+      }
+    },
+    ripple(pos) {
+      const m = spawn(ringGeo, 0xeaf8ff, 0.55);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(pos.x, G.WATER_Y + 0.03, pos.z);
+      m.scale.setScalar(0.35);
+      items.push({ m, life: 0.9, max: 0.9, vy: 0, grow: 2.2 });
+    },
+    burst(pos, color) { // impact pop (cutscene hits, dive slams)
+      for (let i = 0; i < 6; i++) {
+        const m = spawn(puffGeo, color || 0xffe08a, 0.85);
+        m.position.set(pos.x, pos.y + 0.8, pos.z);
+        m.scale.setScalar(0.15);
+        items.push({
+          m, life: 0.45, max: 0.45, grow: 1.2,
+          vx: (Math.random() - 0.5) * 5, vy: 1 + Math.random() * 3, vz: (Math.random() - 0.5) * 5
+        });
+      }
+    },
+    update(dt) {
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        it.life -= dt;
+        if (it.life <= 0) { scene.remove(it.m); it.m.material.dispose(); items.splice(i, 1); continue; }
+        const k = it.life / it.max;
+        it.m.material.opacity = k * 0.65;
+        it.m.scale.multiplyScalar(1 + it.grow * dt);
+        it.m.position.y += (it.vy || 0) * dt;
+        if (it.vx) { it.m.position.x += it.vx * dt; it.m.position.z += it.vz * dt; }
+      }
+    }
+  };
+})();
+// KO stars: dizzy halo for knocked-out poachers (and cutscene victims)
+G.makeKOStars = function () {
+  const g = new THREE.Group();
+  for (let i = 0; i < 3; i++) {
+    const s = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 0), G.mat(0xffd94d, { emissive: 0x8a6a00, key: 'star' }));
+    const a = i / 3 * Math.PI * 2;
+    s.position.set(Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5);
+    g.add(s);
+  }
+  scene.add(g);
+  return g;
+};
 
 // ----- input -----
 const input = {
@@ -143,11 +215,12 @@ addEventListener('mousemove', e => {
   G.camInput.yaw -= (e.clientX - lastX) * 0.005;
   G.camInput.pitch = G.clamp(G.camInput.pitch + (e.clientY - lastY) * 0.003, 0.25, 1.1);
   lastX = e.clientX; lastY = e.clientY;
+  G._lastCamInput = performance.now();
 });
-addEventListener('wheel', e => { G.camInput.dist = G.clamp(G.camInput.dist + e.deltaY * 0.01, 6, 20); }, { passive: true });
+addEventListener('wheel', e => { G.camInput.dist = G.clamp(G.camInput.dist + e.deltaY * 0.01, 6, 20); G._lastCamInput = performance.now(); }, { passive: true });
 addEventListener('keydown', e => {
-  if (e.code === 'KeyQ') G.camInput.yaw += 0.5;
-  if (e.code === 'KeyR') G.camInput.yaw -= 0.5;
+  if (e.code === 'KeyQ') { G.camInput.yaw += 0.5; G._lastCamInput = performance.now(); }
+  if (e.code === 'KeyR') { G.camInput.yaw -= 0.5; G._lastCamInput = performance.now(); }
 });
 G.initMobile(input);
 
@@ -228,9 +301,21 @@ G.started = false;
 
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - last) / 1000);
+  const rawDt = (now - last) / 1000;
+  const dt = Math.min(0.05, rawDt);
   last = now;
+  G.wind.value = now / 1000;
   if (!G.started || G._over) { renderer.render(scene, camera); return; }
+
+  // scripted intro takes over the whole frame (real-time, so slow devices
+  // don't stretch the choreography)
+  if (G.cutscene.active) {
+    G.cutscene.update(Math.min(0.25, rawDt), camera);
+    if (G.fx) G.fx.update(dt);
+    input.jumpEdge = 0; input.attackEdge = 0; input.interactEdge = 0; input.specialEdge = 0;
+    renderer.render(scene, camera);
+    return;
+  }
 
   if (!G.paused) {
     if (input.interactEdge) tryInteract();
@@ -253,6 +338,7 @@ function frame(now) {
     G.updateNPCs(dt, P);
     G.updateBuffs(dt);
     G.updateTutorial(dt, P);
+    G.fx.update(dt);
 
     // beacon follows its target
     const bt = G._beaconT;
@@ -366,8 +452,21 @@ function frame(now) {
     G.ui.objective();
   }
 
-  // camera follow
+  // camera follow — drifts around behind Stuart when you haven't steered it
   const ci = G.camInput;
+  if (!G.paused && P._moving && now - (G._lastCamInput || 0) > 1600) {
+    const wantYaw = Math.atan2(-P._moveDirX, -P._moveDirZ);
+    let dy = wantYaw - ci.yaw;
+    while (dy > Math.PI) dy -= Math.PI * 2;
+    while (dy < -Math.PI) dy += Math.PI * 2;
+    ci.yaw += dy * Math.min(1, dt * 1.4);
+  }
+  // subtle FOV kick while sprinting
+  const wantFov = (input.sprint && P._moving && !P.swimming) ? 56 : 50;
+  if (Math.abs(camera.fov - wantFov) > 0.1) {
+    camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 5);
+    camera.updateProjectionMatrix();
+  }
   const cd = ci.dist * (P.small ? 0.45 : 1);
   const cx = P.pos.x + Math.sin(ci.yaw) * cd * Math.cos(ci.pitch);
   const cz = P.pos.z + Math.cos(ci.yaw) * cd * Math.cos(ci.pitch);

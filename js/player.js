@@ -7,7 +7,8 @@
 // Ability flags:   kick (smash boulders), claw (venom stun), dash, doubleJump,
 //                  glide, dive, block, roll, howl, spit, fruit, stealth, nightVision
 G.MASK_STATS = {
-  none:     { speed: 5.5, sprint: 8.5, jump: 8.5,  slope: 1.7, swim: 1.8, breath: 8,   stamDrain: 14, dmg: 1,   atkCd: 0.6,  range: 1.8, kb: 1,   def: 1 },
+  // bare Stuart fights with his heavy yo-yo: solid reach and a good wallop
+  none:     { speed: 5.5, sprint: 8.5, jump: 8.5,  slope: 1.7, swim: 1.8, breath: 8,   stamDrain: 14, dmg: 2,   atkCd: 0.7,  range: 2.7, kb: 2.5, def: 1, yoyo: true },
   fox:      { speed: 7.0, sprint: 10,  jump: 8.5,  slope: 1.7, swim: 2.0, breath: 10,  stamDrain: 10, dmg: 2,   atkCd: 0.5,  range: 2.0, kb: 1,   def: 1,    dash: true, stealth: true },
   rabbit:   { speed: 6.0, sprint: 9,   jump: 9.5,  slope: 1.7, swim: 1.6, breath: 8,   stamDrain: 10, dmg: 1,   atkCd: 0.3,  range: 1.6, kb: 0.6, def: 1,    doubleJump: true },
   deer:     { speed: 7.5, sprint: 11,  jump: 11,   slope: 1.8, swim: 1.8, breath: 8,   stamDrain: 9,  dmg: 2,   atkCd: 0.8,  range: 2.0, kb: 3,   def: 1 },
@@ -218,27 +219,61 @@ G.buildPlayer = function (scene) {
   const body = new THREE.Group();
   root.add(body);
 
-  // unique shirt material so masks can tint Stuart without touching shared mats
-  const shirtMat = G.curve(new THREE.MeshLambertMaterial({ color: 0xe8a13c }));
-  const shirt = new THREE.Mesh(G.geo.sphere, shirtMat);
+  // --- Stuart Diver, safari street punk ---
+  // unique tee material so masks can tint him without touching shared mats
+  const shirtMat = G.curve(new THREE.MeshLambertMaterial({ color: 0x3a3f4a }));
+  const shirt = new THREE.Mesh(G.geo.sphere, shirtMat);       // dark tee
   shirt.position.set(0, 0.62, 0);
   shirt.scale.set(0.34, 0.42, 0.28);
   shirt.castShadow = true;
   body.add(shirt);
-  G.part(body, X, 0x8a6239, 0, 0.62, -0.3, 0.4, 0.5, 0.16);
-  G.part(body, S, 0x6b4c2c, 0.13, 0.1, 0.02, 0.13, 0.09, 0.17);
-  G.part(body, S, 0x6b4c2c, -0.13, 0.1, 0.02, 0.13, 0.09, 0.17);
+  // open khaki vest: back panel + two front lapels
+  G.part(body, X, 0xb0a26a, 0, 0.66, -0.24, 0.52, 0.62, 0.14);
+  G.part(body, X, 0xb0a26a, 0.21, 0.62, 0.2, 0.16, 0.55, 0.1).rotation.y = 0.25;
+  G.part(body, X, 0xb0a26a, -0.21, 0.62, 0.2, 0.16, 0.55, 0.1).rotation.y = -0.25;
+  G.part(body, X, 0x8a6239, 0, 0.6, -0.32, 0.34, 0.42, 0.1);  // slim field pack
+  // belt + yo-yo holster
+  G.part(body, X, 0x4a3828, 0, 0.32, 0, 0.62, 0.1, 0.5);
+  G.part(body, X, 0xd9b44a, 0, 0.32, 0.14, 0.12, 0.09, 0.06);
+  const beltYoyo = G.part(body, C, 0xd94f4f, 0.28, 0.3, 0.1, 0.09, 0.05, 0.09);
+  beltYoyo.rotation.z = Math.PI / 2;
+  // chunky boots
+  G.part(body, S, 0x2c2c30, 0.13, 0.1, 0.03, 0.15, 0.11, 0.2);
+  G.part(body, S, 0x2c2c30, -0.13, 0.1, 0.03, 0.15, 0.11, 0.2);
   const head = G.part(body, S, 0xffd9a6, 0, 1.28, 0, 0.42);
   G.part(head, S, 0x1c1c1c, 0.32, 0.05, 0.93, 0.11);
   G.part(head, S, 0x1c1c1c, -0.32, 0.05, 0.93, 0.11);
+  // red bandana around the neck
+  G.part(body, S, 0xd94f4f, 0, 0.92, 0.04, 0.24, 0.13, 0.22);
+  G.part(body, X, 0xd94f4f, 0.1, 0.78, 0.16, 0.12, 0.22, 0.05).rotation.z = 0.3;
+  // fingerless gloves
   const hands = [
-    G.part(body, S, 0xffd9a6, 0.4, 0.62, 0.05, 0.11),
-    G.part(body, S, 0xffd9a6, -0.4, 0.62, 0.05, 0.11)
+    G.part(body, S, 0x2c2c30, 0.4, 0.62, 0.05, 0.12),
+    G.part(body, S, 0x2c2c30, -0.4, 0.62, 0.05, 0.12)
   ];
+  // "hat" group = punk hair + forehead goggles (hidden when a mask is on)
   const hat = new THREE.Group();
-  G.part(hat, C, 0xcbb476, 0, 0.32, 0, 0.62, 0.1, 0.62);
-  G.part(hat, S, 0xcbb476, 0, 0.38, 0, 0.4, 0.3, 0.4);
+  for (let i = 0; i < 5; i++) {                                // spiky hair
+    const a = -0.7 + i * 0.35;
+    const spike = G.part(hat, G.geo.cone, 0x2c2320, Math.sin(a) * 0.5, 0.85, Math.cos(a) * 0.25 - 0.15, 0.22, 0.55, 0.22);
+    spike.rotation.x = -0.35 + Math.abs(a) * 0.15;
+    spike.rotation.z = -a * 0.5;
+  }
+  G.part(hat, S, 0x2c2320, 0, 0.55, -0.3, 0.72, 0.5, 0.6);     // hair base
+  G.part(hat, X, 0x4a4a4a, 0, 0.42, 0.3, 1.6, 0.22, 1.3).rotation.x = -0.15; // goggle strap
+  G.part(hat, S, 0x9fd9f0, 0.3, 0.5, 0.82, 0.2, 0.2, 0.1);     // lenses up on forehead
+  G.part(hat, S, 0x9fd9f0, -0.3, 0.5, 0.82, 0.2, 0.2, 0.1);
   head.add(hat);
+  // heavy yo-yo rig on the right hand (shown during bare-form attacks)
+  const yoyo = new THREE.Group();
+  const yoyoDisc = G.part(yoyo, C, 0xd94f4f, 0, 0, 0, 0.16, 0.1, 0.16);
+  yoyoDisc.rotation.x = Math.PI / 2;
+  G.part(yoyo, C, 0xf5f2e3, 0, 0, 0.02, 0.09, 0.12, 0.09).rotation.x = Math.PI / 2;
+  const yoyoString = G.part(yoyo, C, 0xf5f2e3, 0, 0, 0, 0.015, 1, 0.015);
+  yoyoString.rotation.x = Math.PI / 2;
+  yoyo.visible = false;
+  yoyo.position.set(0.4, 0.62, 0.05);
+  body.add(yoyo);
 
   const masks = buildMaskGear(head);
   const kits = buildBodyKits(body);
@@ -252,6 +287,7 @@ G.buildPlayer = function (scene) {
 
   const P = {
     mesh: root, body, head, hat, masks, kits, shirtMat, claws,
+    yoyo, yoyoString, hands, beltYoyo,
     pos: root.position,
     vy: 0, onGround: true,
     yaw: 0,
@@ -344,7 +380,9 @@ G.updatePlayer = function (P, input, dt, camYaw) {
     const sin = Math.sin(camYaw), cos = Math.cos(camYaw);
     wx = mx * cos + mz * sin;
     wz = -mx * sin + mz * cos;
+    P._moveDirX = wx; P._moveDirZ = wz; // for the auto-follow camera
   }
+  P._moving = moving;
 
   // --- water ---
   const ground = G.heightAt(P.pos.x, P.pos.z);
@@ -448,15 +486,52 @@ G.updatePlayer = function (P, input, dt, camYaw) {
     }
   }
 
-  // --- posture ---
+  // --- posture & juice ---
   const bounce = (moving && P.onGround) ? Math.abs(Math.sin(P.walkT)) * 0.1 : 0;
+  // landing squash / jump stretch
+  if (P.onGround && P._wasAir) { P._squash = 0.3; if (G.fx) G.fx.dust(P.pos, 3); }
+  P._wasAir = !P.onGround && !P.swimming;
+  P._squash = Math.max(0, (P._squash || 0) - dt * 2.2);
+  const stretch = (!P.onGround && !P.swimming && Math.abs(P.vy) > 6) ? 0.12 : 0;
+  P.body.scale.set(1 + P._squash * 0.5 - stretch * 0.5, 1 - P._squash + stretch, 1 + P._squash * 0.5 - stretch * 0.5);
   P.body.position.y = bounce + (P.crouch ? -0.22 : 0) + (P.swimming ? -0.15 : 0);
   P.body.rotation.x = P.swimming ? 0.9 : (P.crouch ? 0.25 : 0);
+  // arms swing with the stride
+  if (P.hands) {
+    const sw = (moving && P.onGround) ? Math.sin(P.walkT) * 0.16 : 0;
+    P.hands[0].position.z = 0.05 + sw;
+    P.hands[1].position.z = 0.05 - sw;
+    P.hands[0].position.y = 0.62 + (P.gliding ? 0.25 : 0);
+    P.hands[1].position.y = 0.62 + (P.gliding ? 0.25 : 0);
+  }
+  // running kicks up dust
+  if (moving && P.onGround && wantSprint) {
+    P._dustT = (P._dustT || 0) - dt;
+    if (P._dustT <= 0 && G.fx) { P._dustT = 0.14; G.fx.dust(P.pos, 1); }
+  }
+  // swimming leaves ripples
+  if (P.swimming && moving && G.fx) {
+    P._ripT = (P._ripT || 0) - dt;
+    if (P._ripT <= 0) { P._ripT = 0.4; G.fx.ripple(P.pos); }
+  }
   if (P._rolling) P.body.rotation.x = P.walkT * 2 % (Math.PI * 2); // tumble!
   if (P.gliding) P.body.rotation.x = 0.5;
   if (P.attackAnim > 0) {
     P.attackAnim -= dt * 5;
     P.body.rotation.x = -Math.sin(Math.max(0, P.attackAnim) * Math.PI) * 0.5;
+  }
+  // heavy yo-yo: flies out and snaps back during bare-form attacks
+  if (P.yoyo) {
+    const out = (st.yoyo && P.attackAnim > 0) ? Math.sin(Math.max(0, P.attackAnim) * Math.PI) : 0;
+    P.yoyo.visible = out > 0.02;
+    P.beltYoyo.visible = !P.yoyo.visible && P.mask === 'none';
+    if (P.yoyo.visible) {
+      const dist = out * 2.4;
+      P.yoyo.position.set(0.4, 0.62, 0.05 + dist);
+      P.yoyoString.position.z = -dist / 2;
+      P.yoyoString.scale.y = Math.max(0.01, dist);
+      P.yoyo.children[0].rotation.z += dt * 40; // spin!
+    }
   }
 
   // --- wolf howl [V] ---

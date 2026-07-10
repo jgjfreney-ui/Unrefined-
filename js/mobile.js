@@ -67,6 +67,7 @@ G.initMobile = function (input) {
     G.camInput.yaw -= (t.clientX - lastCX) * 0.006;
     G.camInput.pitch = G.clamp(G.camInput.pitch + (t.clientY - lastCY) * 0.004, 0.25, 1.1);
     lastCX = t.clientX; lastCY = t.clientY;
+    G._lastCamInput = performance.now();
   }
   window.addEventListener('touchstart', e => {
     for (const t of e.changedTouches) {
