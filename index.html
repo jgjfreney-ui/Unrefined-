@@ -40,6 +40,12 @@
   #buffchip, #stealthchip { position: fixed; left: 16px; top: 80px; padding: 3px 10px; font-size: 12px;
     font-weight: bold; background: rgba(253,246,227,.92); border: 2px solid #e8d9b5; border-radius: 10px; z-index: 3; }
   #stealthchip { top: 106px; background: rgba(40,60,35,.85); color: #b8e6a3; border-color: #4a7a3d; }
+  #musicbtn { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 150px); right: 14px;
+    width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 16px; cursor: pointer; z-index: 3; }
+  body.touch #musicbtn { top: auto; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 40px); left: 134px; right: auto; }
+  body.touch #pckeys { display: none; }
+  body:not(.touch) #touchkeys { display: none; }
 
   #coinbox { position: fixed; top: max(10px, env(safe-area-inset-top)); right: 168px; padding: 5px 12px;
     font-size: clamp(14px, 3vw, 18px); font-weight: bold; z-index: 3; }
@@ -196,6 +202,7 @@
 <div id="maskbanner"></div>
 <div id="prompt" class="hidden"></div>
 <div id="mapwrap"><canvas id="map" width="140" height="140"></canvas></div>
+<div id="musicbtn" class="panel">🎵</div>
 <canvas id="mapbase" width="140" height="140"></canvas>
 <div id="studypanel" class="hidden">
   <div id="studyname"></div>
@@ -234,7 +241,7 @@
       the safety of your camp <b>zoo</b>. <b>Craft masks</b> from DNA and transform — every one of the
       <b>19 species</b> gives you a movement power <i>and</i> a fighting style. Fight off poachers,
       break their cages, collect plants for <b>Cheryl</b>, and bring ingredients to <b>Montana</b>'s kitchen.</p>
-    <div class="keys">
+    <div class="keys" id="pckeys">
       <b>W A S D</b><span>move</span>
       <b>Shift</b><span>sprint</span>
       <b>Space</b><span>jump (hold to glide as owl/eagle)</span>
@@ -246,8 +253,8 @@
       <b>Tab</b><span>research notebook</span>
       <b>drag / Q R / wheel</b><span>camera</span>
     </div>
-    <p style="font-size:12px;color:#a08c68">On a phone: left thumb = move (slam to sprint), right thumb = camera,
-      buttons for the rest. Install via your browser's "Add to Home screen" for the full app feel.</p>
+    <p style="font-size:12px;color:#a08c68" id="touchkeys">Left thumb moves (slam the stick to sprint) ·
+      right thumb steers the camera (pinch to zoom) · buttons handle the rest. Tia will teach you everything else.</p>
     <div class="cornerbtns"><button id="btnStart">🌱 Begin the expedition</button>
       <button id="btnHelp">controls later: press H</button></div>
   </div>

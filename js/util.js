@@ -118,7 +118,60 @@ G.audio = {
     o.start(); o.stop(c.currentTime + dur);
   }
 };
+// ----- generative cozy soundtrack (no assets: a tiny sequencer) -----
+G.music = {
+  playing: false, muted: false, step: 0, next: 0, _mi: 4,
+  start() {
+    G.audio.init();
+    if (!G.audio.ctx || this.playing) return;
+    this.playing = true;
+    const c = G.audio.ctx;
+    this.gain = c.createGain();
+    this.gain.gain.value = this.muted ? 0 : 0.5;
+    this.gain.connect(c.destination);
+    this.next = c.currentTime + 0.15;
+    this._timer = setInterval(() => this.schedule(), 120);
+  },
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.gain) this.gain.gain.value = this.muted ? 0 : 0.5;
+    return this.muted;
+  },
+  note(freq, t, dur, type, vol) {
+    const c = G.audio.ctx, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(this.gain);
+    o.start(t); o.stop(t + dur + 0.02);
+  },
+  schedule() {
+    const c = G.audio.ctx;
+    const SPB = 60 / 92 / 2; // eighth notes @ 92bpm
+    while (this.next < c.currentTime + 0.5) {
+      this.play(this.step, this.next);
+      this.step = (this.step + 1) % 64;
+      this.next += SPB;
+    }
+  },
+  play(s, t) {
+    // C — Am — F — G, pentatonic melody wandering on top
+    const chords = [[261.6, 329.6, 392], [220, 261.6, 329.6], [174.6, 220, 261.6], [196, 246.9, 293.7]];
+    const ch = chords[(s >> 4) % 4];
+    const night = G.isNight;
+    if (s % 8 === 0) ch.forEach(f => this.note(f, t, 1.7, 'sine', night ? 0.02 : 0.03));
+    if (s % 4 === 0) this.note(ch[0] / 2, t, 0.32, 'triangle', 0.075);
+    if (s % 2 === 0 && Math.random() < (night ? 0.4 : 0.62)) {
+      const scale = [261.6, 293.7, 329.6, 392, 440, 523.3, 587.3, 659.3];
+      this._mi = G.clamp(this._mi + (Math.random() < 0.5 ? -1 : 1) * (Math.random() < 0.25 ? 2 : 1), 0, 7);
+      this.note(scale[this._mi], t, 0.3, 'triangle', 0.05);
+    }
+  }
+};
+
 G.sfx = {
+  // dialogue "voice" blip, Animal Crossing style — pitch varies per character
+  blip(f) { G.audio.tone((f || 440) * (0.92 + Math.random() * 0.16), 0.045, 'square', 0.045); },
   coin()   { G.audio.tone(920, 0.09, 'square', 0.06); setTimeout(() => G.audio.tone(1380, 0.14, 'square', 0.06), 70); },
   jingle() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => G.audio.tone(f, 0.22, 'triangle', 0.1), i * 110)); },
   mask()   { G.audio.tone(220, 0.3, 'sawtooth', 0.07, 440); },

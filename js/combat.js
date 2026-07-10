@@ -287,8 +287,8 @@ class Poacher {
             { color: 0xffe08a, glow: 0x553300, speed: 26, dmg: 2, friendly: false, size: 0.12, life: 1.2 });
         }
       } else { this.aimT = 0; if (this.beam) this.beam.visible = false; }
-    } else if (this.type === 'netter' && seesPlayer && pd < 3.5) {
-      // swing the net at Stuart
+    } else if (this.type === 'netter' && seesPlayer && pd < 9) {
+      // confront Stuart and swing the net
       this.timer -= dt;
       this.mesh.rotation.y = Math.atan2(P.pos.x - this.pos.x, P.pos.z - this.pos.z);
       if (pd > 1.6) this.moveToward(P.pos.x, P.pos.z, 4.2, dt);
@@ -349,6 +349,14 @@ class Poacher {
     this.pos.y = G.heightAt(this.pos.x, this.pos.z) + Math.abs(Math.sin(this.walkT)) * 0.05;
   }
 }
+
+// spawn a specific poacher at a location (tutorial scout, scripted events)
+G.spawnPoacher = function (x, z, type) {
+  const p = new Poacher({ x, z }, type);
+  p.pos.set(x, G.heightAt(x, z), z);
+  G.poachers.push(p);
+  return p;
+};
 
 G.damagePoacher = function (p, dmg, kbDir, kb) {
   if (p.state === 'ko') return;

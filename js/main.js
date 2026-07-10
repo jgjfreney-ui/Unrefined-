@@ -78,6 +78,22 @@ for (const k in G.meta.zoo) if (G.meta.zoo[k]) G.addZooResident(scene, k);
 for (const z of G.zones) G.buildZoneDecor(z);
 G.ui.init();
 
+// guide beacon: golden bouncing marker over tutorial targets
+const beacon = new THREE.Group();
+{
+  const c = new THREE.Mesh(G.geo.cone, G.mat(0xffd94d, { emissive: 0x8a6a00, key: 'beacon' }));
+  c.scale.set(0.5, 0.9, 0.5);
+  c.rotation.x = Math.PI;
+  beacon.add(c);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.08, 6, 14), G.mat(0xffd94d, { emissive: 0x8a6a00, key: 'beacon' }));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = -0.6;
+  beacon.add(ring);
+}
+beacon.visible = false;
+scene.add(beacon);
+G.setBeacon = t => { G._beaconT = t; };
+
 // ----- input -----
 const input = {
   f: 0, b: 0, l: 0, r: 0, jx: 0, jy: 0,
@@ -102,6 +118,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyG') G.ui.toggleDial();
   if (e.code === 'Tab' || e.code === 'KeyN') { G.ui.toggleNotebook(); e.preventDefault(); }
   if (e.code === 'KeyH') document.getElementById('help').classList.toggle('hidden');
+  if (e.code === 'KeyM') { const m = G.music.toggleMute(); G.toast(m ? '🔇 music off' : '🎵 music on'); }
   if (e.code === 'Escape') { G.ui.closeTent(); G.ui.toggleNotebook(false); G.ui.toggleDial(false); G.dialog.close(); }
   if (e.code.startsWith('Digit')) {
     const n = parseInt(e.code.slice(5), 10);
@@ -235,6 +252,15 @@ function frame(now) {
     G.updateProjectiles(dt);
     G.updateNPCs(dt, P);
     G.updateBuffs(dt);
+    G.updateTutorial(dt, P);
+
+    // beacon follows its target
+    const bt = G._beaconT;
+    if (bt && bt.pos && bt.alive !== false) {
+      beacon.visible = true;
+      beacon.position.set(bt.pos.x, bt.pos.y + 2.8 + Math.sin(now * 0.005) * 0.35, bt.pos.z);
+      beacon.rotation.y = now * 0.003;
+    } else beacon.visible = false;
 
     // coins spin + pickup
     for (let i = G.coins.length - 1; i >= 0; i--) {

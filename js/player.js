@@ -149,13 +149,82 @@ function buildMaskGear(head) {
   return masks;
 }
 
+// ---------------------------------------------------------------------------
+// per-mask body kits: tint + tail/wings/shell so every form reads differently
+// ---------------------------------------------------------------------------
+const KIT_TINT = {
+  fox: 0xd97a3c, rabbit: 0xcfc4b4, deer: 0xb08a5c, frog: 0x62b64e, horse: 0xb07845,
+  croc: 0x5d8c46, mouse: 0xa8a29c, tortoise: 0x6b8f4e, otter: 0x7a5a3c, cobra: 0x8fa04c,
+  monkey: 0x8a6a48, goat: 0xd8d2c8, armadillo: 0xb0988a, owl: 0x8a6f52, scorpion: 0x8c3b26,
+  wolf: 0x6f7278, eagle: 0x6b4e33, bear: 0x6f4e33, badger: 0x3d3d40
+};
+function buildBodyKits(body) {
+  const S = G.geo.sphere, C = G.geo.cyl, K = G.geo.cone;
+  const kits = {};
+  const kit = k => { const g = new THREE.Group(); g.visible = false; body.add(g); kits[k] = g; return g; };
+  { const g = kit('fox');                                                   // bushy white-tipped tail
+    const t = G.part(g, S, 0xd97a3c, 0, 0.48, -0.48, 0.15, 0.15, 0.4); t.rotation.x = -0.5;
+    G.part(t, S, 0xf2e6d4, 0, 0, -0.8, 0.6, 0.6, 0.5); }
+  { const g = kit('rabbit'); G.part(g, S, 0xf5efe3, 0, 0.42, -0.4, 0.14);   // puff tail
+    G.part(g, S, 0xf5efe3, 0, 0.55, 0.26, 0.18, 0.24, 0.1); }              // fluffy chest
+  { const g = kit('deer'); G.part(g, S, 0xf5efe3, 0, 0.5, -0.38, 0.1, 0.15, 0.08);
+    G.part(g, S, 0xd9c4a4, 0, 0.55, 0.26, 0.17, 0.24, 0.1); }
+  { const g = kit('frog'); G.part(g, S, 0xd8eec2, 0, 0.55, 0.26, 0.2, 0.26, 0.1);
+    G.part(g, S, 0x4c9440, 0.15, 0.08, 0.06, 0.16, 0.07, 0.22);            // webbed feet
+    G.part(g, S, 0x4c9440, -0.15, 0.08, 0.06, 0.16, 0.07, 0.22); }
+  { const g = kit('horse');
+    const t = G.part(g, C, 0x5c4326, 0, 0.4, -0.42, 0.07, 0.55, 0.07); t.rotation.x = 0.5; }
+  { const g = kit('croc');                                                  // big tail + back ridges
+    const t = G.part(g, K, 0x527c3e, 0, 0.35, -0.65, 0.18, 0.75, 0.18); t.rotation.x = -1.9;
+    for (let i = 0; i < 3; i++) G.part(g, K, 0x3f6330, 0, 0.92 - i * 0.14, -0.28 - i * 0.1, 0.09, 0.2, 0.09); }
+  { const g = kit('mouse');
+    const t = G.part(g, C, 0xd9a7b2, 0, 0.28, -0.5, 0.035, 0.6, 0.035); t.rotation.x = 1.15; }
+  { const g = kit('tortoise');                                              // shell!
+    G.part(g, S, 0x54713d, 0, 0.62, -0.28, 0.42, 0.44, 0.26);
+    G.part(g, S, 0x6b8f4e, 0, 0.62, -0.3, 0.34, 0.34, 0.2); }
+  { const g = kit('otter');
+    const t = G.part(g, K, 0x6b4e33, 0, 0.28, -0.55, 0.13, 0.65, 0.13); t.rotation.x = -1.75; }
+  { const g = kit('cobra'); G.part(g, S, 0xdec468, 0, 0.55, 0.27, 0.2, 0.3, 0.08); }
+  { const g = kit('monkey');                                                // curly tail
+    const t1 = G.part(g, C, 0x8a6a48, 0, 0.45, -0.45, 0.05, 0.5, 0.05); t1.rotation.x = 0.9;
+    const t2 = G.part(g, C, 0x8a6a48, 0, 0.75, -0.62, 0.045, 0.35, 0.045); t2.rotation.x = -0.6; }
+  { const g = kit('goat'); G.part(g, S, 0xf5efe3, 0, 0.5, 0.26, 0.2, 0.3, 0.12);
+    G.part(g, S, 0xf5efe3, 0, 0.5, -0.36, 0.1, 0.14, 0.08); }
+  { const g = kit('armadillo');                                             // banded back plates
+    for (let i = 0; i < 3; i++)
+      G.part(g, S, i % 2 ? 0xa08878 : 0xb0988a, 0, 0.78 - i * 0.16, -0.26, 0.34 - i * 0.02, 0.14, 0.2); }
+  { const g = kit('owl');                                                   // folded wings + tail feathers
+    G.part(g, S, 0x6b5540, 0.4, 0.6, -0.08, 0.1, 0.34, 0.24);
+    G.part(g, S, 0x6b5540, -0.4, 0.6, -0.08, 0.1, 0.34, 0.24);
+    G.part(g, S, 0xd9c4a4, 0, 0.38, -0.36, 0.16, 0.08, 0.22); }
+  { const g = kit('scorpion');
+    for (let i = 0; i < 2; i++) G.part(g, S, 0x6d2c1b, 0, 0.82 - i * 0.2, -0.28, 0.3 - i * 0.04, 0.12, 0.18); }
+  { const g = kit('wolf');
+    const t = G.part(g, S, 0x5a5d63, 0, 0.45, -0.5, 0.13, 0.13, 0.36); t.rotation.x = -0.4;
+    G.part(g, S, 0xc9ccd1, 0, 0.55, 0.26, 0.18, 0.26, 0.1); }
+  { const g = kit('eagle');                                                 // proud wings + white tail
+    const w1 = G.part(g, S, 0x5a4128, 0.5, 0.65, -0.05, 0.42, 0.07, 0.26); w1.rotation.z = 0.3;
+    const w2 = G.part(g, S, 0x5a4128, -0.5, 0.65, -0.05, 0.42, 0.07, 0.26); w2.rotation.z = -0.3;
+    G.part(g, S, 0xf5f2e3, 0, 0.38, -0.38, 0.18, 0.07, 0.26); }
+  { const g = kit('bear'); G.part(g, S, 0xa8825c, 0, 0.52, 0.26, 0.22, 0.3, 0.1);
+    G.part(g, S, 0x5a3e28, 0, 0.45, -0.38, 0.11); }
+  { const g = kit('badger'); G.part(g, S, 0xd8d2c8, 0, 0.8, -0.12, 0.16, 0.5, 0.36); } // dorsal stripe
+  return kits;
+}
+
 G.buildPlayer = function (scene) {
   const S = G.geo.sphere, X = G.geo.box, C = G.geo.cyl;
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
 
-  G.part(body, S, 0xe8a13c, 0, 0.62, 0, 0.34, 0.42, 0.28);
+  // unique shirt material so masks can tint Stuart without touching shared mats
+  const shirtMat = G.curve(new THREE.MeshLambertMaterial({ color: 0xe8a13c }));
+  const shirt = new THREE.Mesh(G.geo.sphere, shirtMat);
+  shirt.position.set(0, 0.62, 0);
+  shirt.scale.set(0.34, 0.42, 0.28);
+  shirt.castShadow = true;
+  body.add(shirt);
   G.part(body, X, 0x8a6239, 0, 0.62, -0.3, 0.4, 0.5, 0.16);
   G.part(body, S, 0x6b4c2c, 0.13, 0.1, 0.02, 0.13, 0.09, 0.17);
   G.part(body, S, 0x6b4c2c, -0.13, 0.1, 0.02, 0.13, 0.09, 0.17);
@@ -172,6 +241,7 @@ G.buildPlayer = function (scene) {
   head.add(hat);
 
   const masks = buildMaskGear(head);
+  const kits = buildBodyKits(body);
   const claws = [
     G.part(hands[0], S, 0x6d2c1b, 0, 0, 0.5, 2.2, 1.6, 2.6),
     G.part(hands[1], S, 0x6d2c1b, 0, 0, 0.5, 2.2, 1.6, 2.6)
@@ -181,7 +251,7 @@ G.buildPlayer = function (scene) {
   scene.add(root);
 
   const P = {
-    mesh: root, body, head, hat, masks, claws,
+    mesh: root, body, head, hat, masks, kits, shirtMat, claws,
     pos: root.position,
     vy: 0, onGround: true,
     yaw: 0,
@@ -205,6 +275,8 @@ G.buildPlayer = function (scene) {
     P.stats = G.MASK_STATS[name];
     P.hat.visible = name === 'none';
     for (const k in P.masks) P.masks[k].visible = (k === name);
+    for (const k in P.kits) P.kits[k].visible = (k === name);
+    P.shirtMat.color.set(KIT_TINT[name] || 0xe8a13c);
     P.claws.forEach(c => c.visible = (name === 'scorpion' || name === 'badger'));
     const wasSmall = P.small;
     P.small = !!P.stats.small;
@@ -267,9 +339,11 @@ G.updatePlayer = function (P, input, dt, camYaw) {
   if (moving) {
     const len = Math.hypot(mx, mz);
     if (len > 1) { mx /= len; mz /= len; }
+    // camera sits at (+sin, +cos)·dist behind Stuart, so "forward" (W / stick up,
+    // mz = -1) must be (-sin, -cos) and "right" is the camera's true right vector
     const sin = Math.sin(camYaw), cos = Math.cos(camYaw);
-    wx = mx * cos - mz * sin;
-    wz = mx * sin + mz * cos;
+    wx = mx * cos + mz * sin;
+    wz = -mx * sin + mz * cos;
   }
 
   // --- water ---

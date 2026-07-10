@@ -52,52 +52,82 @@ G.nearestNPC = function (P, radius) {
 };
 
 // ---------------------------------------------------------------------------
-// dialogue system (DOM, panel-styled)
+// dialogue system: typewriter text + per-character voice blips (AC style)
 // ---------------------------------------------------------------------------
 G.dialog = {
-  open(name, emoji, lines, choices) {
+  typing: false,
+  open(name, emoji, lines, choices, voice) {
     G.paused = true;
     this.lines = Array.isArray(lines) ? lines.slice() : [lines];
     this.choices = choices || null;
+    this.voice = voice || 440;
     document.getElementById('dlgname').textContent = emoji + ' ' + name;
     document.getElementById('dialog').classList.remove('hidden');
-    this.next();
+    this.advance();
   },
-  next() {
-    const txtEl = document.getElementById('dlgtext');
-    const chEl = document.getElementById('dlgchoices');
-    if (this.lines.length) {
-      txtEl.innerHTML = this.lines.shift();
-      chEl.innerHTML = '';
-      if (!this.lines.length && this.choices) this.renderChoices();
-      else {
-        const b = document.createElement('button');
-        b.textContent = this.lines.length ? '▶ ...' : 'okay';
-        b.onclick = () => this.lines.length ? this.next() : this.close();
-        chEl.appendChild(b);
-      }
-    } else this.close();
-  },
-  renderChoices() {
+  advance() {
+    if (this.typing) return this.finishType();
+    if (!this.lines.length) return this.close();
+    this.full = this.lines.shift();
+    this.plain = this.full.replace(/<[^>]+>/g, '');
+    this.i = 0;
+    this.typing = true;
     const chEl = document.getElementById('dlgchoices');
     chEl.innerHTML = '';
-    for (const c of this.choices) {
+    const b = document.createElement('button');
+    b.textContent = '▶';
+    b.onclick = e => { e.stopPropagation(); this.advance(); };
+    chEl.appendChild(b);
+    clearInterval(this._t);
+    this._t = setInterval(() => {
+      this.i++;
+      document.getElementById('dlgtext').textContent = this.plain.slice(0, this.i);
+      if (this.i % 3 === 1) G.sfx.blip(this.voice);
+      if (this.i >= this.plain.length) this.finishType();
+    }, 22);
+  },
+  finishType() {
+    clearInterval(this._t);
+    this.typing = false;
+    document.getElementById('dlgtext').innerHTML = this.full;
+    if (!this.lines.length) this.renderEnd();
+  },
+  renderEnd() {
+    const chEl = document.getElementById('dlgchoices');
+    chEl.innerHTML = '';
+    if (this.choices) {
+      for (const c of this.choices) {
+        const b = document.createElement('button');
+        b.innerHTML = c.label;
+        if (c.disabled) b.disabled = true;
+        b.onclick = e => { e.stopPropagation(); const act = c.action; this.close(); if (act) act(); };
+        chEl.appendChild(b);
+      }
+      const x = document.createElement('button');
+      x.textContent = 'see ya';
+      x.onclick = e => { e.stopPropagation(); this.close(); };
+      chEl.appendChild(x);
+    } else {
       const b = document.createElement('button');
-      b.innerHTML = c.label;
-      if (c.disabled) b.disabled = true;
-      b.onclick = () => { const act = c.action; this.close(); if (act) act(); };
+      b.textContent = 'okay';
+      b.onclick = e => { e.stopPropagation(); this.close(); };
       chEl.appendChild(b);
     }
-    const x = document.createElement('button');
-    x.textContent = 'see ya';
-    x.onclick = () => this.close();
-    chEl.appendChild(x);
   },
   close() {
+    clearInterval(this._t);
+    this.typing = false;
     document.getElementById('dialog').classList.add('hidden');
     G.paused = false;
   }
 };
+// tapping anywhere on the dialogue panel advances / skips the typewriter
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('dialog').addEventListener('click', () => {
+    if (!document.getElementById('dialog').classList.contains('hidden')) G.dialog.advance();
+  });
+});
+const VOICES = { tia: 640, cheryl: 520, montana: 280 };
 
 // ---------------------------------------------------------------------------
 // quest chain (meta.quest: 0 talk-to-tia, 1 study fox, 2 wear fox mask,
@@ -126,11 +156,58 @@ G.quest = {
   objectiveText() {
     switch (this.stage) {
       case 0: return 'Talk to Tia at the field tent ⛺ — she\'s been waiting for you.';
-      case 1: return 'Study the fox in the forest near camp (crouch [C], get close, hold E).';
-      case 2: return 'Return to Tia and craft the Fox Mask, then wear it (press G for the mask dial).';
-      case 3: return 'Wearing the fox mask, knock out a poacher with your dash-strike [F].';
+      case 1: return [
+        'Follow the golden beacon — Tia tagged a fox at the forest edge.',
+        'Crouch (C / 🐾) before the fox spots you!',
+        'Stay low and creep toward the fox...',
+        'Hold E (👁) while facing the fox to study it.',
+        'Keep watching — fill the meter!'
+      ][G.tutorial.sub] || 'Study the fox!';
+      case 2: return 'Follow the beacon back to Tia — she\'ll press your Fox Mask.';
+      case 3: return 'Wear the fox mask (G / 🎭) and dash-strike [F / ⚔️] the Guild scout at the beacon.';
       default: return null; // fall through to progression hints
     }
+  }
+};
+
+// ---------------------------------------------------------------------------
+// guided tutorial sequencer: beacon + step-by-step coaching
+// ---------------------------------------------------------------------------
+G.tutorial = { sub: 0, seen: {} };
+function coach(id, msg) {
+  if (G.tutorial.seen[id]) return;
+  G.tutorial.seen[id] = 1;
+  G.toast(msg, 4500);
+  G.audio.tone(880, 0.12, 'sine', 0.06, 1200);
+}
+G.updateTutorial = function (dt, P) {
+  const st = G.quest.stage;
+  if (st === 1) {
+    const f = G.tutorialFox;
+    if (!f || !f.alive) { G.setBeacon(null); return; }
+    G.setBeacon(f);
+    const d = Math.hypot(f.pos.x - P.pos.x, f.pos.z - P.pos.z);
+    const t = G.tutorial;
+    if (t.sub === 0 && d < 20) { t.sub = 1; coach('spot', '🦊 There it is! Crouch (C / 🐾) so it doesn\'t bolt.'); }
+    if (t.sub === 1 && P.crouch) { t.sub = 2; coach('creep', 'Nice and low. Now creep in close — slowly.'); }
+    if (t.sub === 2 && d < f.sp.studyR) { t.sub = 3; coach('range', 'In range! Hold E (👁) and keep your eyes on it.'); }
+    if (t.sub === 3 && (G.meta.study.fox || 0) > 15) { t.sub = 4; coach('meter', 'That\'s DNA sequencing! Stay with it until the meter fills.'); }
+    if (t.sub >= 1 && G.tutorial.seen.spot && d > 26 && f.state === 'flee') coach('fled', 'It bolted! No worries — your progress is saved. Sneak back in.');
+  } else if (st === 2) {
+    const tia = G.npcs.find(n => n.id === 'tia');
+    G.setBeacon(tia ? { pos: tia.mesh.position } : null);
+  } else if (st === 3) {
+    if (!G._tutPoacherSpawned) {
+      G._tutPoacherSpawned = true;
+      const a = Math.PI / 2 + 0.4;
+      const x = Math.cos(a) * 26, z = Math.sin(a) * 26;
+      G._tutPoacher = G.spawnPoacher(x, z, 'netter');
+      coach('scout', '⚠ Tia: "A Guild scout is snooping north of camp — the beacon\'s on him. Dash-strike [F / ⚔️]!"');
+    }
+    const p = G._tutPoacher;
+    G.setBeacon(p && !p.dead && p.state !== 'ko' ? p : null);
+  } else {
+    G.setBeacon(null);
   }
 };
 
@@ -139,12 +216,13 @@ function talkTia() {
   const s = G.quest.stage;
   if (s === 0) {
     G.dialog.open('Tia', '🧪', [
-      'Stuart Diver. Finally. I\'ve read your field record — you\'re exactly the diver-turned-ranger this island needs.',
-      'Short version: the <b>Poachers Guild</b> has moved in. Rifles, cages, quotas. They strip islands bare and sell what\'s left.',
-      'My counter-measure is this rig — I call it the <b>DNA mask press</b>. Study an animal long enough and I can press its DNA into a wearable mask. Wear it, and you don\'t just look the part... you <i>fight</i> the part.',
-      'Start small. There\'s a <b>fox</b> denning at the forest edge just past camp. Crouch, keep quiet, hold <b>E</b> and watch it until the meter fills.',
-      'Every animal you fully study also gets a safe home in our <b>zoo</b> here — the one place the Guild can\'t touch them. Now go. And Stuart — don\'t let the Guild reach them first.'
-    ]);
+      'Stuart Diver! Right on time. I\'m <b>Tia</b> — welcome to the Sanctuary Project.',
+      'The short of it: the <b>Poachers Guild</b> landed with rifles, nets and quotas, and this island\'s animals need a bodyguard. That\'s you.',
+      'Your edge is my invention — the <b>DNA mask press</b>. Study an animal long enough and I can press its DNA into a mask. Wear it, and you move like it, <i>fight</i> like it.',
+      'Lesson one. See that <b>golden beacon</b>? I tagged a <b>fox</b> at the forest edge just north. Follow it.',
+      'When you get close: <b>crouch</b> so it doesn\'t bolt, creep in, then <b>hold E</b> while you watch it. Fill the meter and its DNA is ours — and the fox earns a safe pen in our zoo.',
+      'Off you go, ranger. I\'ll press your first mask the moment you\'re back.'
+    ], null, VOICES.tia);
     G.quest.advance(1);
     return;
   }
@@ -155,7 +233,7 @@ function talkTia() {
     { label: '🎭 Craft masks', action: () => G.ui.openTent('tentmasks') },
     { label: '🛠 Field upgrades', action: () => G.ui.openTent('tentupgrades') },
     { label: '🎪 Zoo report', action: () => G.ui.openTent('tentzoo') }
-  ]);
+  ], VOICES.tia);
 }
 
 // ----- Cheryl -----
@@ -190,7 +268,7 @@ function talkCheryl() {
     total > 0
       ? 'Ooh, Stuart! You\'ve got <b>' + total + ' plants</b> in that pack — I can smell the moon ferns from here. Let me pretty up an enclosure for you?'
       : 'Stuart! Bring me wildflowers, ferns, reeds — anything green and lovely. I\'ll turn these bare enclosures into little paradises. (Look for glowing plants out in each biome.)'
-  ], choices);
+  ], choices, VOICES.cheryl);
 }
 
 // ----- Montana -----
@@ -249,7 +327,7 @@ function talkMontana() {
     inv
       ? 'Every animal the Guild takes, or that you drop defending yourself, deserves better than a warehouse shelf. I cook it with respect. You\'re carrying: <b>' + inv + '</b>.'
       : 'Empty-handed, eh? Bring me ingredients — crates the Guild leaves behind, or whatever you\'re forced to take in self-defense. Nothing goes to waste in my kitchen.'
-  ], choices);
+  ], choices, VOICES.montana);
 }
 
 G.talkTo = function (npc) {

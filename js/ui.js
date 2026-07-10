@@ -24,9 +24,14 @@ G.ui.init = function () {
 
   $('btnStart').onclick = () => {
     G.audio.init();
+    G.music.start();
     $('intro').classList.add('hidden');
     G.started = true;
     if ((G.meta.quest || 0) === 0) G.toast('Find Tia by the orange tent — she has your briefing.');
+  };
+  $('musicbtn').onclick = () => {
+    const m = G.music.toggleMute();
+    $('musicbtn').textContent = m ? '🔇' : '🎵';
   };
   $('btnHelp').onclick = () => $('help').classList.toggle('hidden');
   $('helpClose').onclick = () => $('help').classList.add('hidden');
