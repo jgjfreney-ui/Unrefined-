@@ -295,6 +295,49 @@ B.badger = function () {
   return g;
 };
 
+// ----- lake dwellers -----
+B.duck = function () {
+  const g = new THREE.Group();
+  G.part(g, S_(), 0x8a6a48, 0, 0.3, 0, 0.32, 0.24, 0.42);                       // body
+  G.part(g, S_(), 0xd9c4a4, 0, 0.26, 0.16, 0.24, 0.16, 0.26);                   // breast
+  const head = G.part(g, S_(), 0x2c7a4a, 0, 0.62, 0.32, 0.18);                  // mallard-green head
+  G.part(head, S_(), 0x1c1c1c, 0.42, 0.2, 0.8, 0.14);
+  G.part(head, S_(), 0x1c1c1c, -0.42, 0.2, 0.8, 0.14);
+  G.part(head, X_(), 0xf2b035, 0, -0.15, 0.95, 0.7, 0.25, 0.8);                 // bill
+  G.part(g, S_(), 0x6b4e33, 0.28, 0.35, -0.05, 0.1, 0.16, 0.28);                // wings
+  G.part(g, S_(), 0x6b4e33, -0.28, 0.35, -0.05, 0.1, 0.16, 0.28);
+  G.part(g, K_(), 0x8a6a48, 0, 0.36, -0.42, 0.12, 0.3, 0.08).rotation.x = -2.2; // tail-up
+  return g;
+};
+B.koi = function () {
+  const g = new THREE.Group();
+  G.part(g, S_(), 0xe8863c, 0, 0.3, 0, 0.24, 0.3, 0.55);                        // body
+  G.part(g, S_(), 0xf5f2e3, 0, 0.32, 0.15, 0.22, 0.26, 0.3);                    // white patch
+  G.part(g, S_(), 0x1c1c1c, 0.3, 0.4, 0.75, 0.12);
+  G.part(g, S_(), 0x1c1c1c, -0.3, 0.4, 0.75, 0.12);
+  const tail = G.part(g, K_(), 0xe8863c, 0, 0.3, -0.65, 0.3, 0.5, 0.06);        // tail fin
+  tail.rotation.x = Math.PI / 2;
+  G.part(g, K_(), 0xd97a3c, 0, 0.62, -0.1, 0.2, 0.35, 0.05);                    // dorsal fin
+  G.part(g, S_(), 0xd97a3c, 0.26, 0.22, 0.1, 0.06, 0.14, 0.2);                  // side fins
+  G.part(g, S_(), 0xd97a3c, -0.26, 0.22, 0.1, 0.06, 0.14, 0.2);
+  return g;
+};
+B.beaver = function () {
+  const g = new THREE.Group();
+  G.part(g, S_(), 0x6b4a2c, 0, 0.42, 0, 0.4, 0.36, 0.5);                        // chunky body
+  const head = G.part(g, S_(), 0x6b4a2c, 0, 0.68, 0.42, 0.26);
+  G.part(head, S_(), 0x8a6239, 0, -0.15, 0.7, 0.5, 0.4, 0.4);                   // muzzle
+  G.part(head, X_(), 0xf5f2e3, 0, -0.35, 0.85, 0.28, 0.3, 0.1);                 // buck teeth!
+  G.part(head, S_(), 0x1c1c1c, 0.38, 0.2, 0.78, 0.12);
+  G.part(head, S_(), 0x1c1c1c, -0.38, 0.2, 0.78, 0.12);
+  G.part(head, S_(), 0x543a22, 0.6, 0.65, -0.05, 0.2, 0.2, 0.12);               // ears
+  G.part(head, S_(), 0x543a22, -0.6, 0.65, -0.05, 0.2, 0.2, 0.12);
+  const tail = G.part(g, X_(), 0x3d3d40, 0, 0.25, -0.62, 0.4, 0.08, 0.55);      // flat tail
+  tail.rotation.x = 0.25;
+  quadLegs(g, 0x543a22, 0.24, 0.3, 0.09, 0.28, 0.14);
+  return g;
+};
+
 // ----- shared villager builder (guests / NPCs / poachers) -----
 // opts: {shirt, skin, hat:'cap'|'safari'|'ranger'|'chef'|'flower'|'goggles'|null,
 //        hatCol, rifle, net, apron, hair}

@@ -188,7 +188,9 @@ G.ui.objective = function () {
   let txt = G.quest && G.quest.objectiveText();
   if (!txt) {
     const studied = Object.keys(G.SPECIES).filter(k => (m.study[k] || 0) >= G.SPECIES[k].studyNeed).length;
-    if (!m.masks.croc) txt = 'The swamp crocs guard deep water. Study one from dry land to unlock the wetlands.';
+    if (!m.masks.duck) txt = 'Ducks paddle the Great Lake east of camp — their mask opens the world beneath the surface.';
+    else if (!m.dna.koi) txt = 'Wear the Duck Mask at the lake: crouch to dive, and study what glides through the kelp.';
+    else if (!m.masks.croc) txt = 'The swamp crocs guard deep water. Study one from dry land to unlock the wetlands.';
     else if (!m.masks.mouse) txt = 'Mice in the plains hold the key to shrinking — and to studying scorpions.';
     else if (!m.masks.eagle && m.masks.scorpion) txt = 'Eagles roost on the mesa tops. Scorpion claws can climb those walls...';
     else if (studied < 19) txt = 'Zoo: ' + studied + '/19 species. Keep studying — and keep the Guild off their backs.';

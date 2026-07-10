@@ -128,6 +128,12 @@ G.fx = (() => {
       m.scale.setScalar(0.35);
       items.push({ m, life: 0.9, max: 0.9, vy: 0, grow: 2.2 });
     },
+    petal(pos) { // drifting cherry-blossom petal
+      const m = spawn(puffGeo, 0xf2a9c4, 0.9);
+      m.position.set(pos.x + (Math.random() - 0.5) * 14, pos.y + 4 + Math.random() * 5, pos.z + (Math.random() - 0.5) * 14);
+      m.scale.set(0.09, 0.03, 0.06);
+      items.push({ m, life: 3.2, max: 3.2, vy: -1.1, grow: 0, vx: 0.6 + Math.random(), vz: (Math.random() - 0.5) });
+    },
     burst(pos, color) { // impact pop (cutscene hits, dive slams)
       for (let i = 0; i < 6; i++) {
         const m = spawn(puffGeo, color || 0xffe08a, 0.85);
@@ -228,12 +234,13 @@ G.initMobile(input);
 function findStudyTarget() {
   let best = null, bestD = 1e9;
   for (const a of G.animals) {
-    if (!a.alive || a.caged || (a.sp.nocturnal && !G.isNight)) continue;
+    if (!a.alive || a.caged || a.hiddenT > 0 || (a.sp.nocturnal && !G.isNight)) continue;
     const d = Math.hypot(a.pos.x - P.pos.x, a.pos.z - P.pos.z);
     const maxR = a.sp.studyR + (G.meta.upg.journal ? 2 : 0);
     if (d > maxR) continue;
-    if (a.sp.needSmall && !P.small) { if (d < bestD) { best = a; bestD = d; best._tooBig = true; } continue; }
-    a._tooBig = false;
+    if (a.sp.needSmall && !P.small) { if (d < bestD) { best = a; bestD = d; best._tooBig = true; best._tooDeep = false; } continue; }
+    if (a.sp.underwater && !P.underwater) { if (d < bestD) { best = a; bestD = d; best._tooDeep = true; best._tooBig = false; } continue; }
+    a._tooBig = false; a._tooDeep = false;
     if (d < bestD) { best = a; bestD = d; }
   }
   return best;
@@ -384,6 +391,9 @@ function frame(now) {
     if (target && target._tooBig) {
       G.ui.study(target, Math.floor((G.meta.study[target.key] || 0) / target.sp.studyNeed * 100), false);
       document.getElementById('studyhint').textContent = 'too small to observe — you\'d need to be tiny...';
+    } else if (target && target._tooDeep) {
+      G.ui.study(target, Math.floor((G.meta.study[target.key] || 0) / target.sp.studyNeed * 100), false);
+      document.getElementById('studyhint').textContent = 'you can\'t see it from up here — dive below the surface!';
     } else if (target && (G.meta.study[target.key] || 0) < target.sp.studyNeed) {
       const raw = G.meta.study[target.key] || 0;
       let active = false;
@@ -443,8 +453,30 @@ function frame(now) {
     else if (daylight > 0.4) sky.copy(SKY_EVE).lerp(SKY_DAY, (daylight - 0.4) / 0.45);
     else sky.copy(SKY_NIGHT).lerp(SKY_EVE, daylight / 0.4);
     scene.fog.color.copy(sky);
+    scene.fog.near = 55; scene.fog.far = 150;
+    // beneath the surface: deep teal murk (the duck & koi see much farther)
+    if (camera.position.y < G.WATER_Y - 0.15) {
+      scene.fog.color.set(0x1d5b74);
+      sky.set(0x1d5b74);
+      scene.fog.near = 2;
+      scene.fog.far = P.stats.underSight ? 75 : 30;
+    }
     sun.position.set(P.pos.x + Math.cos(sunA) * 40, Math.max(8, Math.sin(sunA) * 60), P.pos.z + 25);
     sun.target.position.copy(P.pos);
+
+    // blossom-grove petals drift around Stuart
+    if (G.groveC && Math.hypot(P.pos.x - G.groveC.x, P.pos.z - G.groveC.z) < 24 && Math.random() < dt * 7) {
+      G.fx.petal(P.pos);
+    }
+    // region discoveries
+    if (!G.meta.seenLake && G.lakeD(P.pos.x, P.pos.z) < 52) {
+      G.meta.seenLake = true; G.save();
+      G.ui.bigBanner('🌊 The Great Lake', 'Ducks dabble on the surface... and something glides through the kelp far below.');
+    }
+    if (!G.meta.seenGrove && G.groveC && Math.hypot(P.pos.x - G.groveC.x, P.pos.z - G.groveC.z) < 20) {
+      G.meta.seenGrove = true; G.save();
+      G.ui.bigBanner('🌸 The Blossom Grove', 'Pink petals ride the wind here. Cheryl would love a few of these ferns.');
+    }
 
     // HUD
     G.ui.updateBars(P);

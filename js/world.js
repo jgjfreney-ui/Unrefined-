@@ -57,6 +57,13 @@ G.sample = function (x, z) {
     h += ridge;
   }
 
+  // --- the Great Lake: a huge deep basin in the eastern wilds ---
+  const ld = Math.hypot(x - 110, z);
+  if (ld < 62) {
+    h -= (1 - G.smoothstep(10, 46, ld)) * 9;          // deep bowl
+    h += (1 - G.smoothstep(0, 6, ld)) * 12;           // ancient-tree islet at the heart
+  }
+
   // --- biome label ---
   let biome = 'plains';
   const mx = Math.max(fF, dF, sF);
@@ -75,6 +82,7 @@ G.sample = function (x, z) {
 };
 G.heightAt = (x, z) => G.sample(x, z).h;
 G.deepWater = function (x, z) { return G.WATER_Y - G.heightAt(x, z) > 1.4; };
+G.lakeD = (x, z) => Math.hypot(x - 110, z);            // distance to the Great Lake's heart
 
 // -------- terrain mesh with vertex colors --------
 const BIOME_COL = {
@@ -122,7 +130,8 @@ G.buildTerrain = function (scene) {
   mesh.receiveShadow = true;
   scene.add(mesh);
 
-  const wgeo = new THREE.CircleGeometry(G.MAP * 0.72, 48);
+  // dense grid so the curved-world shader bends the water like the land
+  const wgeo = new THREE.PlaneGeometry(G.MAP, G.MAP, 64, 64);
   wgeo.rotateX(-Math.PI / 2);
   const wmat = G.curve(new THREE.MeshLambertMaterial({
     color: 0x4db3d4, transparent: true, opacity: 0.72
@@ -159,6 +168,18 @@ G.buildProps = function (scene) {
   const rand = G.mulberry(G.seed + 42);
   const dummy = new THREE.Object3D();
 
+  // cherry-blossom grove: a pink pocket of the northern forest
+  G.groveC = null;
+  for (let r = 70; r < 150 && !G.groveC; r += 5) {
+    for (let a = Math.PI * 0.3; a < Math.PI * 0.7; a += 0.15) {
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      const s = G.sample(x, z);
+      if (s.biome === 'forest' && s.h > 1.2) { G.groveC = { x, z }; break; }
+    }
+  }
+  if (!G.groveC) G.groveC = { x: 0, z: 90 };
+  const inGrove = (x, z) => Math.hypot(x - G.groveC.x, z - G.groveC.z) < 20;
+
   // --- gather scatter spots ---
   const treeSpots = [], forestTreeSpots = [], cactusSpots = [], swampSpots = [],
         tuftSpots = [], bushSpots = [];
@@ -189,7 +210,8 @@ G.buildProps = function (scene) {
     m.castShadow = true;
     spots.forEach((sp, i) => {
       place(sp, dummy); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
-      if (opts.jitter) {
+      if (opts.colorFn) m.setColorAt(i, opts.colorFn(sp));
+      else if (opts.jitter) {
         jitCol.setRGB(1, 1, 1).offsetHSL((rand() - 0.5) * 0.03, 0, (rand() - 0.5) * opts.jitter);
         m.setColorAt(i, jitCol);
       }
@@ -213,13 +235,19 @@ G.buildProps = function (scene) {
   instanced(() => new THREE.CylinderGeometry(0.3, 0.45, 3.4, 7), 0x6f4e2c, forestTreeSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 1.6, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, sp.s * 9, 0);
   });
-  instanced(() => new THREE.SphereGeometry(1.8, 9, 7), 0x3f8f3a, forestTreeSpots, (sp, d) => {
+  // forest canopies: white material + baked instance color so the blossom
+  // grove can paint its trees pink
+  const groveColor = (base) => (sp) => {
+    if (inGrove(sp.p.x, sp.p.z)) return jitCol.setHex(0xf2a9c4).offsetHSL(0, 0, (rand() - 0.5) * 0.08);
+    return jitCol.setHex(base).offsetHSL(0, 0, (rand() - 0.5) * 0.1);
+  };
+  instanced(() => new THREE.SphereGeometry(1.8, 9, 7), 0xffffff, forestTreeSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 3.3 + sp.s, sp.p.z); d.scale.set(sp.s * 1.1, sp.s * 1.15, sp.s * 1.1); d.rotation.set(0, 0, 0);
-  }, { wind: 0.06, jitter: 0.18 });
-  instanced(() => new THREE.SphereGeometry(1.1, 8, 6), 0x4da045, forestTreeSpots, (sp, d) => {
+  }, { wind: 0.06, colorFn: groveColor(0x3f8f3a) });
+  instanced(() => new THREE.SphereGeometry(1.1, 8, 6), 0xffffff, forestTreeSpots, (sp, d) => {
     d.position.set(sp.p.x - sp.s * 0.6, sp.h + 4.4 + sp.s, sp.p.z + sp.s * 0.4);
     d.scale.setScalar(sp.s * 0.75); d.rotation.set(0, 0, 0);
-  }, { wind: 0.1, jitter: 0.18 });
+  }, { wind: 0.1, colorFn: groveColor(0x4da045) });
   // cacti
   instanced(() => THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.45, 1.6, 4, 8) : new THREE.CylinderGeometry(0.45, 0.5, 2.2, 8), 0x4f9948, cactusSpots, (sp, d) => {
     d.position.set(sp.p.x, sp.h + 1.0 * sp.s, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, sp.s * 7, 0);
@@ -303,6 +331,104 @@ G.buildProps = function (scene) {
     }
   }
 
+  // --- the Great Lake: lilies, reeds, kelp forest, pearls, sunken chest ---
+  {
+    const lilySpots = [], reedSpots = [], kelpSpots = [];
+    for (let i = 0; i < 2600; i++) {
+      const a = rand() * Math.PI * 2, r = rand() * 58;
+      const x = 110 + Math.cos(a) * r, z = Math.sin(a) * r;
+      const h = G.heightAt(x, z);
+      if (h > -1.4 && h < -0.25 && lilySpots.length < 70) lilySpots.push({ p: { x, z }, h, s: 0.6 + rand() * 0.7 });
+      else if (h > 0.05 && h < 0.6 && reedSpots.length < 80) reedSpots.push({ p: { x, z }, h, s: 0.8 + rand() * 0.6 });
+      else if (h < -3 && kelpSpots.length < 100) kelpSpots.push({ p: { x, z }, h, s: 0.7 + rand() * 0.9 });
+    }
+    instanced(() => new THREE.CylinderGeometry(0.55, 0.55, 0.05, 8), 0x4fa050, lilySpots, (sp, d) => {
+      d.position.set(sp.p.x, G.WATER_Y + 0.03, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, rand() * 6, 0);
+    }, { jitter: 0.15 });
+    instanced(() => new THREE.ConeGeometry(0.08, 1.5, 4), 0x7ba848, reedSpots, (sp, d) => {
+      d.position.set(sp.p.x, sp.h + 0.7, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, 0, rand() * 0.15);
+    }, { wind: 0.35, jitter: 0.2 });
+    instanced(() => new THREE.ConeGeometry(0.3, 4.2, 5), 0x2c6b4a, kelpSpots, (sp, d) => {
+      d.position.set(sp.p.x, sp.h + 2.0, sp.p.z); d.scale.set(sp.s, sp.s * (0.8 + rand() * 0.5), sp.s);
+      d.rotation.set(0, rand() * 6, 0);
+    }, { wind: 0.5, jitter: 0.2 }); // underwater current!
+    // pearls scattered on the deep lakebed
+    for (let i = 0; i < 14; i++) {
+      const a = rand() * Math.PI * 2, r = 8 + rand() * 22;
+      const x = 110 + Math.cos(a) * r, z = Math.sin(a) * r;
+      const h = G.heightAt(x, z);
+      if (h < -4) G.spawnCoin(scene, x, z, h + 0.6);
+    }
+    // sunken chest with a pearl hoard
+    const chest = new THREE.Group();
+    G.part(chest, G.geo.box, 0x6b4c2c, 0, 0.32, 0, 1.1, 0.6, 0.7);
+    G.part(chest, G.geo.box, 0x8a6239, 0, 0.68, 0, 1.16, 0.2, 0.76);
+    G.part(chest, G.geo.box, 0xd9b44a, 0, 0.45, 0.36, 0.16, 0.2, 0.06);
+    const cx = 110 + 11, cz = 6;
+    chest.position.set(cx, G.heightAt(cx, cz), cz);
+    chest.rotation.y = 0.7;
+    scene.add(chest);
+    for (let i = 0; i < 8; i++)
+      G.spawnCoin(scene, cx + (rand() - 0.5) * 3, cz + (rand() - 0.5) * 3, G.heightAt(cx, cz) + 0.5 + rand());
+    // the ancient tree on the islet
+    const isle = new THREE.Group();
+    G.part(isle, new THREE.CylinderGeometry(0.6, 1.1, 5.5, 8), 0x6f4e2c, 0, 2.6, 0, 1);
+    G.part(isle, G.geo.sphere, 0x58ab4a, 0, 6.2, 0, 3.2, 2.4, 3.2, { wind: 0.05 });
+    G.part(isle, G.geo.sphere, 0x6cbf58, 1.8, 7.4, 0.8, 1.7, 1.3, 1.7, { wind: 0.08 });
+    G.part(isle, G.geo.sphere, 0x4da045, -1.6, 7.2, -0.6, 1.5, 1.2, 1.5, { wind: 0.08 });
+    isle.position.set(110, G.heightAt(110, 0), 0);
+    scene.add(isle);
+  }
+
+  // --- palm-lined southern beaches ---
+  for (let i = 0, placed = 0; i < 800 && placed < 16; i++) {
+    const a = -Math.PI / 2 + (rand() - 0.5) * 1.6, r = 60 + rand() * 150;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const smp = G.sample(x, z);
+    if (smp.h < 0.18 || smp.h > 0.75) continue;
+    const palm = new THREE.Group();
+    const lean = (rand() - 0.5) * 0.5;
+    for (let k = 0; k < 3; k++) {
+      const seg = G.part(palm, G.geo.cyl, 0x9c7c4e, Math.sin(lean) * k * 0.5, 0.7 + k * 1.15, 0, 0.16 - k * 0.03, 1.3, 0.16 - k * 0.03);
+      seg.rotation.z = lean * (k + 1) * 0.4;
+    }
+    const topX = Math.sin(lean) * 1.3, topY = 4.0;
+    for (let f = 0; f < 6; f++) {
+      const fa = f / 6 * Math.PI * 2;
+      const frond = G.part(palm, G.geo.cone, 0x4f9948, topX + Math.cos(fa) * 0.9, topY, Math.sin(fa) * 0.9, 0.28, 1.8, 0.1);
+      frond.rotation.z = Math.cos(fa) * 1.25;
+      frond.rotation.x = -Math.sin(fa) * 1.25;
+    }
+    G.part(palm, G.geo.sphere, 0x6b4c2c, topX + 0.2, topY - 0.35, 0.2, 0.18);
+    palm.position.set(x, smp.h, z);
+    palm.rotation.y = rand() * 6;
+    scene.add(palm);
+    placed++;
+  }
+
+  // --- glowing forest mushrooms ---
+  {
+    const shroomSpots = [];
+    for (let i = 0; i < 1500 && shroomSpots.length < 70; i++) {
+      const p = rngPoint(rand), smp = G.sample(p.x, p.z);
+      if (smp.biome === 'forest' && smp.h > 1 && rand() < 0.4) shroomSpots.push({ p, h: smp.h, s: 0.6 + rand() * 0.9 });
+    }
+    instanced(() => new THREE.CylinderGeometry(0.05, 0.07, 0.26, 5), 0xe8e0d0, shroomSpots, (sp, d) => {
+      d.position.set(sp.p.x, sp.h + 0.13, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, 0, 0);
+    });
+    const shroomMat = G.mat(0x66e0c0, { emissive: 0x1d5c4c, key: 'shroom' });
+    const shroomTop = new THREE.InstancedMesh(new THREE.SphereGeometry(0.16, 7, 5), shroomMat, shroomSpots.length);
+    shroomSpots.forEach((sp, i) => {
+      dummy.position.set(sp.p.x, sp.h + 0.28 * sp.s, sp.p.z);
+      dummy.scale.set(sp.s, sp.s * 0.6, sp.s);
+      dummy.rotation.set(0, 0, 0);
+      dummy.updateMatrix();
+      shroomTop.setMatrixAt(i, dummy.matrix);
+    });
+    shroomTop.instanceMatrix.needsUpdate = true;
+    scene.add(shroomTop);
+  }
+
   // --- mouse burrows (small-size fast travel) ---
   const holeGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.25, 10);
   for (let i = 0; i < 7; i++) {
@@ -353,7 +479,8 @@ G.ZONES = [
   { id: 'forest',   label: 'Forest Grove',    col: 0x4f9948, floor: 0x63a854 },
   { id: 'desert',   label: 'Desert Dome',     col: 0xd9a45b, floor: 0xe6cf8d },
   { id: 'wetland',  label: 'Wetland Lagoon',  col: 0x5e97a8, floor: 0x86a86a },
-  { id: 'highland', label: 'Highland Crag',   col: 0x8f8a82, floor: 0xa8a29a }
+  { id: 'highland', label: 'Highland Crag',   col: 0x8f8a82, floor: 0xa8a29a },
+  { id: 'lake',     label: 'Lake Cove',       col: 0x4db3d4, floor: 0x8fc9d9 }
 ];
 G.zones = [];
 G.buildHub = function (scene) {
@@ -411,10 +538,10 @@ G.buildHub = function (scene) {
   scene.add(kitchen);
   G.kitchenStand = kitchen;
 
-  // -- enclosure zones: 5 big themed squares in an arc behind camp --
-  for (let i = 0; i < 5; i++) {
+  // -- enclosure zones: 6 big themed squares in an arc behind camp --
+  for (let i = 0; i < 6; i++) {
     const zdef = G.ZONES[i];
-    const a = (-0.5 + i / 4) * Math.PI * 1.05 + Math.PI * 0.5;
+    const a = (-0.5 + i / 5) * Math.PI * 1.2 + Math.PI * 0.5;
     const px = Math.cos(a) * 30, pz = Math.sin(a) * 30 + 4;
     const py = G.heightAt(px, pz);
     const grp = new THREE.Group();
@@ -448,13 +575,17 @@ G.buildHub = function (scene) {
     G.part(sign, G.geo.box, zdef.col, 0, 1.15, 0, 1.5, 0.65, 0.12);
     sign.position.set(0, 0, -S - 0.7);
     grp.add(sign);
-    // wetland gets a pool
-    if (zdef.id === 'wetland') {
-      const pool = new THREE.Mesh(new THREE.CircleGeometry(2.4, 16),
+    // wetland gets a pool; Lake Cove is mostly water with lilies
+    if (zdef.id === 'wetland' || zdef.id === 'lake') {
+      const pool = new THREE.Mesh(new THREE.CircleGeometry(zdef.id === 'lake' ? 4.2 : 2.4, 16),
         G.curve(new THREE.MeshLambertMaterial({ color: 0x4db3d4, transparent: true, opacity: 0.8, key: 'zpool' })));
       pool.rotation.x = -Math.PI / 2;
-      pool.position.set(1.5, 0.14, 1.5);
+      pool.position.set(zdef.id === 'lake' ? 0 : 1.5, 0.14, zdef.id === 'lake' ? 0 : 1.5);
       grp.add(pool);
+      if (zdef.id === 'lake') {
+        G.part(grp, new THREE.CylinderGeometry(0.5, 0.5, 0.05, 8), 0x4fa050, 1.5, 0.18, 1.2, 1);
+        G.part(grp, new THREE.CylinderGeometry(0.4, 0.4, 0.05, 8), 0x4fa050, -1.8, 0.18, -0.8, 1);
+      }
     }
     // highland gets rock steps
     if (zdef.id === 'highland') {

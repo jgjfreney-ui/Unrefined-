@@ -14,7 +14,10 @@ G.MASK_STATS = {
   deer:     { speed: 7.5, sprint: 11,  jump: 11,   slope: 1.8, swim: 1.8, breath: 8,   stamDrain: 9,  dmg: 2,   atkCd: 0.8,  range: 2.0, kb: 3,   def: 1 },
   frog:     { speed: 5.5, sprint: 8.5, jump: 15.5, slope: 1.7, swim: 2.6, breath: 20,  stamDrain: 14, dmg: 2,   atkCd: 0.6,  range: 2.0, kb: 4,   def: 1,    kick: true },
   horse:    { speed: 7.0, sprint: 16,  jump: 9,    slope: 1.7, swim: 1.8, breath: 8,   stamDrain: 2,  dmg: 2,   atkCd: 0.9,  range: 2.0, kb: 5,   def: 1 },
-  croc:     { speed: 4.8, sprint: 7,   jump: 7.5,  slope: 1.5, swim: 7.5, breath: 240, stamDrain: 14, dmg: 4,   atkCd: 1.1,  range: 2.1, kb: 1.5, def: 0.85 },
+  croc:     { speed: 4.8, sprint: 7,   jump: 7.5,  slope: 1.5, swim: 7.5, breath: 240, stamDrain: 14, dmg: 4,   atkCd: 1.1,  range: 2.1, kb: 1.5, def: 0.85, dive: true },
+  duck:     { speed: 5.0, sprint: 7.5, jump: 7,    slope: 1.7, swim: 6,   breath: 120, stamDrain: 10, dmg: 1.5, atkCd: 0.35, range: 1.7, kb: 0.8, def: 1,    dive: true, underSight: true },
+  beaver:   { speed: 5.0, sprint: 7.5, jump: 7,    slope: 1.6, swim: 7,   breath: 80,  stamDrain: 10, dmg: 2.5, atkCd: 0.9,  range: 2.0, kb: 5,   def: 0.85, dive: true },
+  koi:      { speed: 2.2, sprint: 3,   jump: 4.5,  slope: 1.4, swim: 11,  breath: 9999,stamDrain: 12, dmg: 1,   atkCd: 0.5,  range: 1.6, kb: 0.5, def: 0.95, dive: true, underSight: true },
   mouse:    { speed: 4.2, sprint: 6.5, jump: 6,    slope: 1.7, swim: 1.4, breath: 6,   stamDrain: 10, dmg: 0.5, atkCd: 0.3,  range: 1.2, kb: 0.4, def: 0.85, small: true },
   tortoise: { speed: 4.0, sprint: 5.5, jump: 6.5,  slope: 1.5, swim: 3.0, breath: 60,  stamDrain: 12, dmg: 2.5, atkCd: 1.2,  range: 1.9, kb: 3,   def: 0.6,  block: true },
   otter:    { speed: 5.5, sprint: 8.5, jump: 8,    slope: 1.7, swim: 9,   breath: 60,  stamDrain: 10, dmg: 1.5, atkCd: 0.35, range: 1.7, kb: 0.6, def: 1 },
@@ -146,6 +149,22 @@ function buildMaskGear(head) {
     G.part(g, S, 0xd8d2c8, 0, 0.45, 0.25, 0.5, 0.75, 0.95);                            // head stripe
     G.part(g, S, 0x2c2c2c, 0, -0.1, 0.95, 0.15);
     masks.badger = g; }
+  { const g = new THREE.Group(); dome(g, 0x2c7a4a);                                    // duck
+    G.part(g, X, 0xf2b035, 0, -0.15, 0.95, 0.75, 0.28, 0.7);
+    G.part(g, S, 0xf5f2e3, 0, -0.42, 0.2, 0.9, 0.35, 0.85);                            // neck ring
+    masks.duck = g; }
+  { const g = new THREE.Group(); dome(g, 0x6b4a2c);                                    // beaver
+    G.part(g, S, 0x543a22, 0.6, 0.8, 0, 0.24, 0.24, 0.14);
+    G.part(g, S, 0x543a22, -0.6, 0.8, 0, 0.24, 0.24, 0.14);
+    G.part(g, S, 0x8a6239, 0, -0.15, 0.85, 0.42, 0.32, 0.35);
+    G.part(g, X, 0xf5f2e3, 0, -0.35, 0.95, 0.26, 0.28, 0.1);                           // buck teeth
+    masks.beaver = g; }
+  { const g = new THREE.Group(); dome(g, 0xe8863c);                                    // koi
+    G.part(g, S, 0xf5f2e3, 0.3, 0.45, 0.4, 0.5, 0.45, 0.5);                            // white patch
+    G.part(g, K, 0xd97a3c, 0, 0.95, -0.15, 0.3, 0.6, 0.08);                            // dorsal fin
+    G.part(g, S, 0xd97a3c, 0.85, 0.1, 0, 0.14, 0.35, 0.3);                             // gill fins
+    G.part(g, S, 0xd97a3c, -0.85, 0.1, 0, 0.14, 0.35, 0.3);
+    masks.koi = g; }
   for (const k in masks) { masks[k].visible = false; head.add(masks[k]); }
   return masks;
 }
@@ -157,10 +176,11 @@ const KIT_TINT = {
   fox: 0xd97a3c, rabbit: 0xcfc4b4, deer: 0xb08a5c, frog: 0x62b64e, horse: 0xb07845,
   croc: 0x5d8c46, mouse: 0xa8a29c, tortoise: 0x6b8f4e, otter: 0x7a5a3c, cobra: 0x8fa04c,
   monkey: 0x8a6a48, goat: 0xd8d2c8, armadillo: 0xb0988a, owl: 0x8a6f52, scorpion: 0x8c3b26,
-  wolf: 0x6f7278, eagle: 0x6b4e33, bear: 0x6f4e33, badger: 0x3d3d40
+  wolf: 0x6f7278, eagle: 0x6b4e33, bear: 0x6f4e33, badger: 0x3d3d40,
+  duck: 0x2c7a4a, beaver: 0x6b4a2c, koi: 0xe8863c
 };
 function buildBodyKits(body) {
-  const S = G.geo.sphere, C = G.geo.cyl, K = G.geo.cone;
+  const S = G.geo.sphere, C = G.geo.cyl, K = G.geo.cone, X = G.geo.box;
   const kits = {};
   const kit = k => { const g = new THREE.Group(); g.visible = false; body.add(g); kits[k] = g; return g; };
   { const g = kit('fox');                                                   // bushy white-tipped tail
@@ -210,6 +230,16 @@ function buildBodyKits(body) {
   { const g = kit('bear'); G.part(g, S, 0xa8825c, 0, 0.52, 0.26, 0.22, 0.3, 0.1);
     G.part(g, S, 0x5a3e28, 0, 0.45, -0.38, 0.11); }
   { const g = kit('badger'); G.part(g, S, 0xd8d2c8, 0, 0.8, -0.12, 0.16, 0.5, 0.36); } // dorsal stripe
+  { const g = kit('duck');
+    const t = G.part(g, K, 0x8a6a48, 0, 0.45, -0.42, 0.16, 0.35, 0.1); t.rotation.x = -2.2; // tail-up
+    G.part(g, S, 0x6b4e33, 0.4, 0.6, -0.05, 0.1, 0.28, 0.22);
+    G.part(g, S, 0x6b4e33, -0.4, 0.6, -0.05, 0.1, 0.28, 0.22); }
+  { const g = kit('beaver');
+    const t = G.part(g, X, 0x3d3d40, 0, 0.32, -0.52, 0.34, 0.07, 0.5); t.rotation.x = 0.35; }
+  { const g = kit('koi');
+    const t = G.part(g, K, 0xe8863c, 0, 0.45, -0.5, 0.3, 0.5, 0.06); t.rotation.x = Math.PI / 2;
+    G.part(g, S, 0xd97a3c, 0.42, 0.6, 0, 0.08, 0.24, 0.2);
+    G.part(g, S, 0xd97a3c, -0.42, 0.6, 0, 0.08, 0.24, 0.2); }
   return kits;
 }
 
@@ -444,15 +474,24 @@ G.updatePlayer = function (P, input, dt, camYaw) {
   P.gliding = false;
   if (P.swimming) {
     const surfY = G.WATER_Y - 0.25 * sizeMul + Math.sin(P.walkT * 0.5 + performance.now() * 0.002) * 0.05;
-    P.pos.y += (surfY - P.pos.y) * Math.min(1, dt * 6);
+    const canDive = !!st.dive;
+    // diving: crouch sinks, jump rises (duck / croc / beaver / koi forms)
+    if (canDive && input.crouch) P.pos.y -= 4.5 * dt;
+    else if (canDive && input.jump && P.pos.y < surfY - 0.4) P.pos.y += 4 * dt;
+    const floorY = groundNow + 0.45;
+    if (P.pos.y < floorY) P.pos.y = floorY;
+    P.underwater = P.pos.y < G.WATER_Y - 0.75;
+    if (!P.underwater && !(canDive && input.crouch))
+      P.pos.y += (surfY - P.pos.y) * Math.min(1, dt * 6);
     P.vy = 0; P.onGround = false; P.jumpsUsed = 0;
     let breathMax = st.breath * ((G.buffs && G.buffs.breathMul) || 1);
-    if (depth > 1.4) {
+    if (P.underwater || depth > 1.4) {
       P.breath -= 100 / breathMax * dt;
       if (P.breath <= 0) { P.breath = 0; P._drownT = (P._drownT || 0) + dt; if (P._drownT > 1) { P._drownT = 0; P.hurt(1); } }
     } else P.breath = Math.min(100, P.breath + 25 * dt);
-    if (input.jumpEdge) { P.vy = st.jump * 0.55; P.pos.y += 0.2; P.swimming = false; P.onGround = false; }
+    if (input.jumpEdge && !P.underwater) { P.vy = st.jump * 0.55; P.pos.y += 0.2; P.swimming = false; P.onGround = false; }
   } else {
+    P.underwater = false;
     P.breath = Math.min(100, P.breath + 30 * dt);
     P.vy -= 26 * dt;
     // glide: hold jump while falling (owl / eagle)

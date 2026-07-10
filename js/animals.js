@@ -17,7 +17,7 @@ G.SPECIES = {
   },
   rabbit: {
     name: 'Rabbit', emoji: '🐰', zone: 'plains', tier: 1, studyNeed: 80,
-    count: 5, speed: 2.6, fleeSpeed: 7.5, wary: 9, studyR: 6, hop: true,
+    count: 5, speed: 2.6, fleeSpeed: 7.5, wary: 9, studyR: 6, hop: true, herd: true, burrowHide: true,
     traits: 'Double Jump: kick off thin air. Quick, weak kicks in a scrap.',
     hint: 'Bounces around the open plains.',
     ingredient: 'rabbit meat',
@@ -25,7 +25,7 @@ G.SPECIES = {
   },
   deer: {
     name: 'Deer', emoji: '🦌', zone: 'forest', tier: 1, studyNeed: 90,
-    count: 4, speed: 3.2, fleeSpeed: 9.5, wary: 12, studyR: 9,
+    count: 4, speed: 3.2, fleeSpeed: 9.5, wary: 12, studyR: 9, herd: true,
     traits: 'Bounding Stride: long graceful leaps. Antler Charge knocks foes flat.',
     hint: 'Grazes between the forest trees. Extremely alert.',
     ingredient: 'venison',
@@ -39,9 +39,18 @@ G.SPECIES = {
     ingredient: 'frog legs',
     place: s => (s.biome === 'plains' || s.biome === 'swamp') && s.h > 0.15 && s.h < 1.0
   },
+  duck: {
+    name: 'Duck', emoji: '🦆', zone: 'lake', tier: 1, studyNeed: 90,
+    count: 5, speed: 1.8, fleeSpeed: 5, wary: 7, studyR: 7,
+    floats: true, herd: true, nest: 'shore',
+    traits: 'Dabbler: dive below the surface, see clearly underwater, paddle with ease. Wing flurry.',
+    hint: 'Paddles on the Great Lake, east of camp. Its mask opens the world below the surface.',
+    ingredient: 'duck egg',
+    place: (s, x, z) => G.lakeD(x, z) < 44 && s.h < -0.6
+  },
   horse: {
     name: 'Horse', emoji: '🐴', zone: 'plains', tier: 1, studyNeed: 100,
-    count: 4, speed: 3.2, fleeSpeed: 9, wary: 11, studyR: 9,
+    count: 4, speed: 3.2, fleeSpeed: 9, wary: 11, studyR: 9, herd: true,
     traits: 'Gallop: sprint at incredible speed with endless stamina. Trample kick.',
     hint: 'Grazes in the open plains. Skittish — crouch and approach slowly.',
     ingredient: 'oat bundle',
@@ -50,7 +59,7 @@ G.SPECIES = {
   // ---------- tier 2 ----------
   mouse: {
     name: 'Mouse', emoji: '🐭', zone: 'plains', tier: 2, studyNeed: 120,
-    count: 5, speed: 2.2, fleeSpeed: 6.5, wary: 8, studyR: 5, tiny: 0.45,
+    count: 5, speed: 2.2, fleeSpeed: 6.5, wary: 8, studyR: 5, tiny: 0.45, burrowHide: true,
     traits: 'Shrink: become tiny — study small creatures, squeeze into burrows.',
     hint: 'Scurries around the plains. Very wary; sneak up crouched.',
     ingredient: 'wild grain',
@@ -71,6 +80,23 @@ G.SPECIES = {
     hint: 'Plays near ponds and river mouths.',
     ingredient: 'fresh fish',
     place: s => s.biome !== 'desert' && s.h > 0.1 && s.h < 0.8
+  },
+  beaver: {
+    name: 'Beaver', emoji: '🦫', zone: 'lake', tier: 2, studyNeed: 140,
+    count: 3, speed: 1.6, fleeSpeed: 4.5, wary: 7, studyR: 7, nest: 'lodge',
+    traits: 'Tail Slap [F]: heavy splashing knockback. Master swimmer and builder.',
+    hint: 'Hauls sticks along the Great Lake\'s shore — look for its lodge.',
+    ingredient: 'crisp cattail',
+    place: (s, x, z) => G.lakeD(x, z) < 54 && s.h > 0.05 && s.h < 0.8
+  },
+  koi: {
+    name: 'Koi', emoji: '🐟', zone: 'lake', tier: 2, studyNeed: 160,
+    count: 6, speed: 2.2, fleeSpeed: 6, wary: 6, studyR: 6,
+    underwater: true, aquatic: true,
+    traits: 'Waterborn: swim like a dream with endless breath... but you flop on land.',
+    hint: 'Glides through the kelp deep beneath the Great Lake. Dive down to observe it.',
+    ingredient: 'lake fish',
+    place: (s, x, z) => G.lakeD(x, z) < 38 && s.h < -3.5
   },
   cobra: {
     name: 'Cobra', emoji: '🐍', zone: 'desert', tier: 2, studyNeed: 170,
@@ -99,7 +125,7 @@ G.SPECIES = {
   },
   armadillo: {
     name: 'Armadillo', emoji: '🛡️', zone: 'desert', tier: 2, studyNeed: 150,
-    count: 3, speed: 1.8, fleeSpeed: 6.5, wary: 6, studyR: 6,
+    count: 3, speed: 1.8, fleeSpeed: 6.5, wary: 6, studyR: 6, ball: true,
     traits: 'Roll Out: sprint becomes an armored cannonball roll.',
     hint: 'Snuffles between the cacti.',
     ingredient: 'root veggies',
@@ -107,7 +133,7 @@ G.SPECIES = {
   },
   owl: {
     name: 'Owl', emoji: '🦉', zone: 'forest', tier: 2, studyNeed: 180,
-    count: 3, speed: 2.0, fleeSpeed: 8, wary: 10, studyR: 8, nocturnal: true,
+    count: 3, speed: 2.0, fleeSpeed: 8, wary: 10, studyR: 8, nocturnal: true, nest: 'ground',
     traits: 'Night Wings: glide on the wind and see clearly in the dark.',
     hint: 'Only appears after sundown, deep in the forest.',
     ingredient: 'forest herbs',
@@ -134,7 +160,7 @@ G.SPECIES = {
   // ---------- tier 3 ----------
   wolf: {
     name: 'Wolf', emoji: '🐺', zone: 'forest', tier: 3, studyNeed: 240,
-    count: 3, speed: 3.4, fleeSpeed: 0, wary: 0, studyR: 9, nocturnal: true,
+    count: 3, speed: 3.4, fleeSpeed: 0, wary: 0, studyR: 9, nocturnal: true, hunts: true,
     aggressive: { hp: 8, dmg: 2, aggroR: 9, atkR: 1.7, atkCd: 1.1 },
     traits: 'Moon Runner: tireless sprint. Howl [V] scatters poachers in terror.',
     hint: 'Hunts the forest at night. It will find you first.',
@@ -143,7 +169,7 @@ G.SPECIES = {
   },
   eagle: {
     name: 'Eagle', emoji: '🦅', zone: 'highland', tier: 3, studyNeed: 240,
-    count: 2, speed: 2.2, fleeSpeed: 11, wary: 14, studyR: 10,
+    count: 2, speed: 2.2, fleeSpeed: 11, wary: 14, studyR: 10, nest: 'ground',
     traits: 'Sky Lord: glide from any height; attack mid-air to dive-bomb.',
     hint: 'Roosts on mesa tops and high crags. Approach from above... somehow.',
     ingredient: 'giant egg',
@@ -174,7 +200,8 @@ const SCALES = {
   horse: 1, frog: 0.5, croc: 1, mouse: 0.42, scorpion: 0.34,
   fox: 0.8, rabbit: 0.55, deer: 1, tortoise: 0.6, otter: 0.6,
   cobra: 0.7, monkey: 0.65, goat: 0.95, armadillo: 0.6, owl: 0.55,
-  wolf: 0.95, eagle: 0.7, bear: 1.15, badger: 0.7
+  wolf: 0.95, eagle: 0.7, bear: 1.15, badger: 0.7,
+  duck: 0.5, koi: 0.55, beaver: 0.65
 };
 G.SPECIES_SCALE = SCALES;
 
@@ -199,14 +226,57 @@ class Animal {
     this.alive = true;
     this.caged = false;
     this.hp = this.sp.aggressive ? this.sp.aggressive.hp : 0;
+    this.hiddenT = 0;      // hiding in a burrow / sunk in sand
+    this.eatT = 0;         // wolf feeding pause
+    this.dabbleT = 0;      // duck bottoms-up
+    this.nest = null;      // {x, z} home to return to
+    this.prey = null;      // wolf hunt target
+    this.fleeSrc = null;   // what we're running from (player or predator)
   }
   retarget() {
+    // herd cohesion: drift toward the middle of your buddies
+    let cx = 0, cz = 0, n = 0;
+    if (this.sp.herd) {
+      for (const o of G.animals) {
+        if (o === this || o.key !== this.key || !o.alive || o.caged) continue;
+        const d = Math.hypot(o.pos.x - this.pos.x, o.pos.z - this.pos.z);
+        if (d < 30) { cx += o.pos.x; cz += o.pos.z; n++; }
+      }
+    }
     for (let i = 0; i < 8; i++) {
       const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 10;
-      const tx = this.home.x + Math.cos(a) * r, tz = this.home.y + Math.sin(a) * r;
-      if (this.sp.place(G.sample(tx, tz))) { this.target.set(tx, tz); return; }
+      let tx = this.home.x + Math.cos(a) * r, tz = this.home.y + Math.sin(a) * r;
+      if (n) { tx = (tx + cx / n) / 2; tz = (tz + cz / n) / 2; }
+      if (this.sp.place(G.sample(tx, tz), tx, tz)) { this.target.set(tx, tz); return; }
     }
     this.target.set(this.home.x, this.home.y);
+  }
+  startFlee(srcPos, spread) {
+    if (this.sp.fleeSpeed <= 0) return;
+    this.state = 'flee';
+    this.timer = 2.5;
+    this.fleeSrc = srcPos || null;
+    // dive for the nearest burrow if that's our style
+    if (this.sp.burrowHide) {
+      let best = null, bd = 14;
+      for (const b of G.burrows) {
+        const d = Math.hypot(b.x - this.pos.x, b.z - this.pos.z);
+        if (d < bd) { best = b; bd = d; }
+      }
+      if (best) { this.state = 'toBurrow'; this.burrow = best; }
+    }
+    // panic is contagious in a herd
+    if (spread && this.sp.herd) {
+      for (const o of G.animals) {
+        if (o === this || o.key !== this.key || !o.alive || o.caged || o.state === 'flee') continue;
+        if (Math.hypot(o.pos.x - this.pos.x, o.pos.z - this.pos.z) < 14) o.startFlee(srcPos, false);
+      }
+    }
+  }
+  despawnRespawn(delay) {
+    this.alive = false;
+    this.mesh.visible = false;
+    G.respawnQueue.push({ key: this.key, t: delay || 90 });
   }
   hurt(dmg, kbDir, kb) {
     if (!this.sp.aggressive) { // peaceful animals just get knocked about
@@ -231,6 +301,17 @@ class Animal {
   }
   update(dt, player) {
     if (!this.alive || this.caged) return;
+    // hiding underground (burrow dive / sand sink)
+    if (this.hiddenT > 0) {
+      this.hiddenT -= dt;
+      if (this.hiddenT <= 0) {
+        this.mesh.visible = true;
+        this.state = 'idle';
+        this.timer = 1;
+        if (G.fx) G.fx.dust(this.pos, 2);
+      }
+      return;
+    }
     // nocturnal creatures only exist after dark
     if (this.sp.nocturnal && !G.isNight) { this.mesh.visible = false; return; }
     this.mesh.visible = true;
@@ -243,9 +324,95 @@ class Animal {
       return;
     }
     if (this.fear > 0) this.fear -= dt;
+    if (this.eatT > 0) { this.eatT -= dt; this.settleY(dt); return; } // wolf feeding
     const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
     let dist = Math.hypot(dx, dz);
     if (player.hidden) dist *= 3; // stealth: you read as much farther away
+
+    // armadillo: balls up instead of running
+    if (this.sp.ball) {
+      const near = dist < this.sp.wary + 2;
+      if (near && this.state !== 'ball') { this.state = 'ball'; this.timer = 0; }
+      if (this.state === 'ball') {
+        this.timer = near ? 3 : this.timer - dt;
+        this.mesh.scale.setScalar(G.SPECIES_SCALE[this.key]);
+        this.mesh.scale.y *= 0.72;
+        if (this.timer <= 0) { this.state = 'idle'; this.mesh.scale.setScalar(G.SPECIES_SCALE[this.key]); }
+        this.settleY(dt);
+        return;
+      }
+    }
+    // scorpion: sinks under the sand when something huge stomps close
+    if (this.sp.stinger && !player.small && dist < 4) {
+      this.mesh.visible = false;
+      this.hiddenT = 3.5;
+      if (G.fx) G.fx.dust(this.pos, 2);
+      return;
+    }
+    // wolves hunt at night
+    if (this.sp.hunts && G.isNight && this.state !== 'chase') {
+      if (!this.prey || !this.prey.alive || this.prey.caged || this.prey.hiddenT > 0) {
+        this.prey = null;
+        if (Math.random() < dt * 0.5) { // scan occasionally
+          let best = null, bd = 28;
+          for (const o of G.animals) {
+            if (!o.alive || o.caged || o.hiddenT > 0) continue;
+            if (!['rabbit', 'deer', 'mouse', 'duck'].includes(o.key)) continue;
+            const d = Math.hypot(o.pos.x - this.pos.x, o.pos.z - this.pos.z);
+            if (d < bd) { best = o; bd = d; }
+          }
+          if (best) this.prey = best;
+        }
+      }
+      if (this.prey) {
+        const p = this.prey;
+        const pdx = p.pos.x - this.pos.x, pdz = p.pos.z - this.pos.z;
+        const pd = Math.hypot(pdx, pdz) || 1;
+        this.move(pdx / pd * this.sp.speed * 2.2 * dt, pdz / pd * this.sp.speed * 2.2 * dt);
+        this.face(pdx, pdz, dt);
+        if (p.state !== 'flee' && p.state !== 'toBurrow' && pd < 14) p.startFlee(this.pos, true);
+        if (pd < 1.3) {
+          p.despawnRespawn(90 + Math.random() * 60);
+          this.prey = null;
+          this.eatT = 3.5;
+          if (G.fx) G.fx.burst(this.pos, 0xc9ccd1);
+        }
+        this.settleY(dt);
+        return;
+      }
+    }
+    // burrow dash: committed sprint for the hole
+    if (this.state === 'toBurrow' && this.burrow) {
+      const bdx = this.burrow.x - this.pos.x, bdz = this.burrow.z - this.pos.z;
+      const bd = Math.hypot(bdx, bdz) || 1;
+      this.move(bdx / bd * this.sp.fleeSpeed * dt, bdz / bd * this.sp.fleeSpeed * dt);
+      this.face(bdx, bdz, dt);
+      if (bd < 0.8) {
+        this.pos.set(this.burrow.x, this.pos.y, this.burrow.z);
+        this.mesh.visible = false;
+        this.hiddenT = 4 + Math.random() * 3;
+        if (G.fx) G.fx.dust(this.pos, 3);
+        this.state = 'idle';
+      }
+      this.settleY(dt);
+      return;
+    }
+    // homebody: return to the nest / lodge and settle for a while
+    if (this.state === 'homing' && this.nest) {
+      const ndx = this.nest.x - this.pos.x, ndz = this.nest.z - this.pos.z;
+      const nd = Math.hypot(ndx, ndz) || 1;
+      this.move(ndx / nd * this.sp.speed * dt, ndz / nd * this.sp.speed * dt);
+      this.face(ndx, ndz, dt);
+      if (nd < 1.1) { this.state = 'nesting'; this.timer = 6 + Math.random() * 5; }
+      this.settleY(dt);
+      return;
+    }
+    if (this.state === 'nesting') {
+      this.timer -= dt;
+      if (this.timer <= 0 || dist < this.sp.wary * 0.7) this.state = 'idle';
+      this.pos.y += (G.heightAt(this.pos.x, this.pos.z) - 0.06 - this.pos.y) * Math.min(1, dt * 8);
+      return;
+    }
 
     // -- aggression --
     const ag = this.sp.aggressive;
@@ -280,17 +447,20 @@ class Animal {
     if (player.crouch) threat *= 0.55;
     if (player.small) threat *= 0.6;
     if (G.meta.upg.boots) threat *= 0.7;
-    if ((this.sp.fleeSpeed > 0 && dist < threat && this.state !== 'flee') || this.fear > 0) {
-      if (this.sp.fleeSpeed > 0) { this.state = 'flee'; this.timer = 2.5; }
+    if ((this.sp.fleeSpeed > 0 && dist < threat && this.state !== 'flee' && this.state !== 'toBurrow') || this.fear > 0) {
+      if (this.sp.fleeSpeed > 0 && this.state !== 'flee' && this.state !== 'toBurrow')
+        this.startFlee(player.pos, true);
     }
 
     if (this.state === 'flee') {
       this.timer -= dt;
+      const src = this.fleeSrc || player.pos;
+      const fdx = this.pos.x - src.x, fdz = this.pos.z - src.z;
+      const d = Math.hypot(fdx, fdz) || 1;
       const sp = this.sp.fleeSpeed || this.sp.speed * 2;
-      const d = Math.hypot(dx, dz) || 1;
-      this.move(-dx / d * sp * dt, -dz / d * sp * dt);
-      this.face(-dx, -dz, dt);
-      if (this.timer <= 0) this.state = 'idle';
+      this.move(fdx / d * sp * dt, fdz / d * sp * dt);
+      this.face(fdx, fdz, dt);
+      if (this.timer <= 0) { this.state = 'idle'; this.fleeSrc = null; }
     } else if (this.state === 'walk') {
       const tx = this.target.x - this.pos.x, tz = this.target.y - this.pos.z;
       const td = Math.hypot(tx, tz);
@@ -302,14 +472,31 @@ class Animal {
       }
     } else {
       this.timer -= dt;
-      if (this.timer <= 0) { this.retarget(); this.state = 'walk'; }
+      if (this.timer <= 0) {
+        // head home to the nest sometimes; otherwise wander
+        if (this.nest && Math.random() < 0.3 &&
+            Math.hypot(this.nest.x - this.pos.x, this.nest.z - this.pos.z) > 3) {
+          this.state = 'homing';
+        } else {
+          this.retarget();
+          this.state = 'walk';
+        }
+      }
+      // ducks dabble: bottoms-up!
+      if (this.sp.floats) {
+        this.dabbleT -= dt;
+        if (this.dabbleT < -1.2) this.dabbleT = 4 + Math.random() * 6;
+        this.mesh.rotation.x = this.dabbleT < 0 ? 0.9 : 0;
+      }
     }
     this.settleY(dt);
   }
   move(mx, mz) {
     const nx = this.pos.x + mx, nz = this.pos.z + mz;
     const smp = G.sample(nx, nz);
-    if (this.key !== 'croc' && smp.h < G.WATER_Y - 0.3) { this.state = 'idle'; this.timer = 0.5; return; }
+    const waterOK = this.key === 'croc' || this.sp.floats || this.sp.aquatic;
+    if (!waterOK && smp.h < G.WATER_Y - 0.3) { this.state = 'idle'; this.timer = 0.5; return; }
+    if (this.sp.aquatic && smp.h > G.WATER_Y - 2) { this.state = 'idle'; this.timer = 0.5; return; } // fish stay deep
     if (Math.hypot(nx, nz) > G.RADIUS - 4) { this.state = 'idle'; return; }
     this.pos.x = nx; this.pos.z = nz;
   }
@@ -324,6 +511,12 @@ class Animal {
     const ground = G.heightAt(this.pos.x, this.pos.z);
     let y = ground;
     if (this.key === 'croc' && ground < G.WATER_Y - 0.2) y = G.WATER_Y - 0.35;
+    if (this.sp.floats && ground < G.WATER_Y - 0.35) y = G.WATER_Y - 0.1 + Math.sin(this.bob * 2) * 0.04;
+    if (this.sp.aquatic) {
+      // koi cruise mid-water above the lakebed
+      y = Math.min(G.WATER_Y - 1.2, ground + 0.8 + Math.sin(this.bob * 1.5) * 0.6);
+      this.mesh.rotation.x = Math.sin(this.bob * 3) * 0.12;
+    }
     if (this.sp.hop && this.state !== 'idle') y += Math.abs(Math.sin(this.bob * 6)) * 0.5;
     else if (this.state !== 'idle')
       y += Math.abs(Math.sin(this.bob * 10)) * 0.06;
@@ -346,18 +539,66 @@ G.spawnAnimalAt = function (key, x, z) {
   G.animals.push(an);
   return an;
 };
+// nest props: ground nest (twig ring + eggs) or beaver lodge (stick dome)
+function buildNestProp(kind, x, z) {
+  const g = new THREE.Group();
+  const h = G.heightAt(x, z);
+  if (kind === 'lodge') {
+    for (let i = 0; i < 7; i++) {
+      const a = i / 7 * Math.PI * 2;
+      const stick = G.part(g, G.geo.cyl, 0x8a6239, Math.cos(a) * 0.5, 0.45, Math.sin(a) * 0.5, 0.08, 1.5, 0.08);
+      stick.rotation.z = Math.cos(a) * 0.9;
+      stick.rotation.x = -Math.sin(a) * 0.9;
+    }
+    G.part(g, G.geo.sphere, 0x6b4c2c, 0, 0.35, 0, 0.75, 0.5, 0.75);
+  } else {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.14, 6, 12), G.mat(0x8a6239));
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.12;
+    g.add(ring);
+    G.part(g, G.geo.sphere, 0xf2ecd9, 0.12, 0.16, 0.05, 0.13, 0.16, 0.13);
+    G.part(g, G.geo.sphere, 0xf2ecd9, -0.12, 0.15, -0.08, 0.12, 0.15, 0.12);
+  }
+  g.position.set(x, h, z);
+  G.scene.add(g);
+  return g;
+}
+function giveNest(an, rand) {
+  const kind = an.sp.nest;
+  // find a dry-ish spot near home
+  for (let i = 0; i < 40; i++) {
+    const a = rand() * Math.PI * 2, r = 2 + rand() * 6;
+    const x = an.home.x + Math.cos(a) * r, z = an.home.y + Math.sin(a) * r;
+    const h = G.heightAt(x, z);
+    if (kind === 'lodge' ? (h > -0.5 && h < 0.4) : h > 0.2) {
+      buildNestProp(kind, x, z);
+      an.nest = { x, z };
+      return;
+    }
+  }
+}
+
 G.spawnAnimals = function (scene) {
   const rand = G.mulberry(G.seed + 1234);
   for (const key in G.SPECIES) {
     const sp = G.SPECIES[key];
-    let placed = 0, tries = 0;
-    while (placed < sp.count && tries++ < 1200) {
-      const a = rand() * Math.PI * 2, r = 40 + rand() * 170;
-      const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      if (!sp.place(G.sample(x, z))) continue;
+    let placed = 0, tries = 0, lastX = null, lastZ = null;
+    while (placed < sp.count && tries++ < 1400) {
+      let x, z;
+      if (sp.herd && lastX !== null && rand() < 0.65) {
+        // herds spawn clustered around the first of their kind
+        const a = rand() * Math.PI * 2, r = 3 + rand() * 8;
+        x = lastX + Math.cos(a) * r; z = lastZ + Math.sin(a) * r;
+      } else {
+        const a = rand() * Math.PI * 2, r = 40 + rand() * 170;
+        x = Math.cos(a) * r; z = Math.sin(a) * r;
+      }
+      if (!sp.place(G.sample(x, z), x, z)) continue;
       const an = new Animal(key, x, z);
       scene.add(an.mesh);
       G.animals.push(an);
+      if (sp.nest) giveNest(an, rand);
+      lastX = x; lastZ = z;
       placed++;
     }
   }
@@ -365,7 +606,7 @@ G.spawnAnimals = function (scene) {
   let fx = 0, fz = 0, found = false;
   for (let r = 30; r < 120 && !found; r += 4) for (let a = 0; a < 6.28; a += 0.25) {
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
-    if (G.SPECIES.fox.place(G.sample(x, z))) { fx = x; fz = z; found = true; break; }
+    if (G.SPECIES.fox.place(G.sample(x, z), x, z)) { fx = x; fz = z; found = true; break; }
   }
   if (found) {
     const tut = new Animal('fox', fx, fz);
@@ -385,7 +626,7 @@ G.tickRespawns = function (dt) {
     for (let tries = 0; tries < 300; tries++) {
       const a = rand() * Math.PI * 2, rr = 60 + rand() * 150;
       const x = Math.cos(a) * rr, z = Math.sin(a) * rr;
-      if (G.SPECIES[r.key].place(G.sample(x, z))) { G.spawnAnimalAt(r.key, x, z); break; }
+      if (G.SPECIES[r.key].place(G.sample(x, z), x, z)) { G.spawnAnimalAt(r.key, x, z); break; }
     }
   }
 };

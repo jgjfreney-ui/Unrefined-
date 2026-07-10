@@ -337,8 +337,9 @@ class Poacher {
         // hunt nearest catchable animal
         let best = null, bd = 55;
         for (const a of G.animals) {
-          if (!a.alive || a.caged || a.sp.aggressive || (a.sp.nocturnal && !G.isNight)) continue;
-          if (a.sp.needSmall) continue; // too small to bother
+          if (!a.alive || a.caged || a.hiddenT > 0 || a.sp.aggressive || (a.sp.nocturnal && !G.isNight)) continue;
+          if (a.sp.needSmall || a.sp.underwater) continue; // too small / out of reach
+          if (G.heightAt(a.pos.x, a.pos.z) < G.WATER_Y - 0.4) continue; // won't wade in deep
           const d = Math.hypot(a.pos.x - this.pos.x, a.pos.z - this.pos.z);
           if (d < bd) { best = a; bd = d; }
         }
