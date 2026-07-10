@@ -180,6 +180,18 @@ G.buildProps = function (scene) {
   if (!G.groveC) G.groveC = { x: 0, z: 90 };
   const inGrove = (x, z) => Math.hypot(x - G.groveC.x, z - G.groveC.z) < 20;
 
+  // mushroom hollow: a glowing dell deeper in the forest, away from the grove
+  G.hollowC = null;
+  for (let r = 90; r < 170 && !G.hollowC; r += 5) {
+    for (let a = Math.PI * 0.3; a < Math.PI * 0.7; a += 0.13) {
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      const s = G.sample(x, z);
+      if (s.biome === 'forest' && s.h > 1 &&
+          Math.hypot(x - G.groveC.x, z - G.groveC.z) > 45) { G.hollowC = { x, z }; break; }
+    }
+  }
+  if (!G.hollowC) G.hollowC = { x: -30, z: 120 };
+
   // --- gather scatter spots ---
   const treeSpots = [], forestTreeSpots = [], cactusSpots = [], swampSpots = [],
         tuftSpots = [], bushSpots = [];
@@ -406,12 +418,35 @@ G.buildProps = function (scene) {
     placed++;
   }
 
-  // --- glowing forest mushrooms ---
+  // --- glowing mushrooms: dense in the Mushroom Hollow, sparse elsewhere ---
   {
     const shroomSpots = [];
-    for (let i = 0; i < 1500 && shroomSpots.length < 70; i++) {
+    // hollow cluster
+    for (let i = 0; i < 300 && shroomSpots.length < 45; i++) {
+      const a = rand() * Math.PI * 2, r = rand() * 15;
+      const x = G.hollowC.x + Math.cos(a) * r, z = G.hollowC.z + Math.sin(a) * r;
+      const smp = G.sample(x, z);
+      if (smp.h > 0.8) shroomSpots.push({ p: { x, z }, h: smp.h, s: 0.7 + rand() * 1.1 });
+    }
+    // scattered outliers
+    for (let i = 0; i < 1200 && shroomSpots.length < 75; i++) {
       const p = rngPoint(rand), smp = G.sample(p.x, p.z);
-      if (smp.biome === 'forest' && smp.h > 1 && rand() < 0.4) shroomSpots.push({ p, h: smp.h, s: 0.6 + rand() * 0.9 });
+      if (smp.biome === 'forest' && smp.h > 1 && rand() < 0.3) shroomSpots.push({ p, h: smp.h, s: 0.6 + rand() * 0.8 });
+    }
+    // giant caps ring the hollow's heart
+    for (let i = 0; i < 6; i++) {
+      const a = i / 6 * Math.PI * 2 + rand();
+      const x = G.hollowC.x + Math.cos(a) * (4 + rand() * 5), z = G.hollowC.z + Math.sin(a) * (4 + rand() * 5);
+      const h = G.heightAt(x, z);
+      if (h < 0.5) continue;
+      const big = new THREE.Group();
+      const sc = 1.6 + rand() * 1.2;
+      G.part(big, G.geo.cyl, 0xe8e0d0, 0, 1.1 * sc, 0, 0.28 * sc, 2.2 * sc, 0.34 * sc);
+      G.part(big, G.geo.sphere, 0x66e0c0, 0, 2.3 * sc, 0, 1.15 * sc, 0.65 * sc, 1.15 * sc, { emissive: 0x1d5c4c });
+      G.part(big, G.geo.sphere, 0xe8fff5, 0, 2.5 * sc, 0, 0.35 * sc, 0.2 * sc, 0.35 * sc);
+      big.position.set(x, h, z);
+      big.rotation.y = rand() * 6;
+      scene.add(big);
     }
     instanced(() => new THREE.CylinderGeometry(0.05, 0.07, 0.26, 5), 0xe8e0d0, shroomSpots, (sp, d) => {
       d.position.set(sp.p.x, sp.h + 0.13, sp.p.z); d.scale.setScalar(sp.s); d.rotation.set(0, 0, 0);
@@ -445,6 +480,29 @@ G.buildProps = function (scene) {
       break;
     }
   }
+
+  // --- named regions: minimap labels + discovery banners ---
+  let cragsC = null;
+  for (let i = 0; i < 600 && !cragsC; i++) {
+    const p = rngPoint(rand);
+    if (G.sample(p.x, p.z).biome === 'rock') cragsC = { x: p.x, z: p.z };
+  }
+  G.REGIONS = [
+    { name: 'Camp', x: 0, z: 0 },
+    { name: 'The Field', x: 78, z: -52 },
+    { name: 'Great Lake', x: 110, z: 4, discover: 'lake', r: 52, emoji: '🌊',
+      blurb: 'Ducks dabble on the surface... and something glides through the kelp far below.' },
+    { name: 'Wildwood', x: -28, z: 105 },
+    { name: 'Blossom Grove', x: G.groveC.x, z: G.groveC.z, discover: 'grove', r: 20, emoji: '🌸',
+      blurb: 'Pink petals ride the wind here. Butterflies drift between the boughs.' },
+    { name: 'Mushroom Hollow', x: G.hollowC.x, z: G.hollowC.z, discover: 'hollow', r: 22, emoji: '🍄',
+      blurb: 'Giant glowing caps light the dell. Tiny lights dance here after dark...' },
+    { name: 'Sunscorch Desert', x: 0, z: -110 },
+    { name: 'Murkmire Swamp', x: -110, z: 0 },
+    { name: 'Palm Coast', x: 55, z: -172, discover: 'coast', r: 34, emoji: '🌴',
+      blurb: 'Palms, surf, gulls overhead and crabs sidestepping the tide.' }
+  ];
+  if (cragsC) G.REGIONS.push({ name: 'The Crags', x: cragsC.x, z: cragsC.z });
 };
 
 // -------- coins & drops --------
@@ -674,5 +732,19 @@ G.paintMinimap = function (canvas) {
     img.data[o] = c.r * 255; img.data[o + 1] = c.g * 255; img.data[o + 2] = c.b * 255; img.data[o + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
+  // region names
+  if (G.REGIONS) {
+    ctx.font = 'bold 9px "Trebuchet MS", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = 'rgba(253,246,227,.85)';
+    ctx.fillStyle = '#5a4632';
+    for (const rg of G.REGIONS) {
+      const px = (rg.x / G.MAP + 0.5) * N, py = (rg.z / G.MAP + 0.5) * N;
+      const short = rg.name.replace('The ', '').replace('Sunscorch ', '').replace('Murkmire ', '').replace('Mushroom ', '').replace('Blossom ', '').replace('Great ', '').replace('Palm ', '');
+      ctx.strokeText(short, px, py);
+      ctx.fillText(short, px, py);
+    }
+  }
   return canvas;
 };

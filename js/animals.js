@@ -48,6 +48,14 @@ G.SPECIES = {
     ingredient: 'duck egg',
     place: (s, x, z) => G.lakeD(x, z) < 44 && s.h < -0.6
   },
+  crab: {
+    name: 'Crab', emoji: '🦀', zone: 'lake', tier: 1, studyNeed: 80,
+    count: 4, speed: 1.4, fleeSpeed: 4, wary: 5, studyR: 5, tiny: 0.5,
+    traits: 'Iron Pinch: heavy claws and a hard shell. Walks the bottom of any water.',
+    hint: 'Sidesteps along the shorelines and the Palm Coast surf.',
+    ingredient: 'crab meat',
+    place: s => s.biome !== 'swamp' && s.h > 0.08 && s.h < 0.6
+  },
   horse: {
     name: 'Horse', emoji: '🐴', zone: 'plains', tier: 1, studyNeed: 100,
     count: 4, speed: 3.2, fleeSpeed: 9, wary: 11, studyR: 9, herd: true,
@@ -97,6 +105,57 @@ G.SPECIES = {
     hint: 'Glides through the kelp deep beneath the Great Lake. Dive down to observe it.',
     ingredient: 'lake fish',
     place: (s, x, z) => G.lakeD(x, z) < 38 && s.h < -3.5
+  },
+  butterfly: {
+    name: 'Butterfly', emoji: '🦋', zone: 'forest', tier: 2, studyNeed: 100,
+    count: 5, speed: 1.2, fleeSpeed: 3.5, wary: 4, studyR: 3.5,
+    needSmall: true, tiny: 0.4, flutter: true,
+    traits: 'Featherweight: drift gently on the breeze — falls never hurt. Pollen Puff [F] dazes.',
+    hint: 'Dances between the pink boughs of the Blossom Grove. Far too small to observe... unless you shrink.',
+    ingredient: 'sweet nectar',
+    place: (s, x, z) => G.groveC && Math.hypot(x - G.groveC.x, z - G.groveC.z) < 24 && s.h > 0.8
+  },
+  raccoon: {
+    name: 'Raccoon', emoji: '🦝', zone: 'forest', tier: 2, studyNeed: 150,
+    count: 3, speed: 2.6, fleeSpeed: 6.5, wary: 7, studyR: 7,
+    traits: 'Sticky Fingers: your strikes pickpocket coins from poachers. Nimble scrapper.',
+    hint: 'A little bandit snuffling around the Blossom Grove.',
+    ingredient: 'wild berries',
+    place: (s, x, z) => G.groveC && Math.hypot(x - G.groveC.x, z - G.groveC.z) < 30 && s.h > 0.8
+  },
+  seagull: {
+    name: 'Seagull', emoji: '🐦', zone: 'lake', tier: 2, studyNeed: 130,
+    count: 4, speed: 2.2, fleeSpeed: 8, wary: 8, studyR: 7, hop: true, nest: 'shore',
+    traits: 'Sea Wings: glide the coastal winds; attack mid-air to dive-peck.',
+    hint: 'Wheels and squabbles over the Palm Coast.',
+    ingredient: 'gull egg',
+    place: (s, x, z) => s.h > 0.1 && s.h < 0.8 && Math.hypot(x, z) > 140
+  },
+  firefly: {
+    name: 'Firefly', emoji: '🪲', zone: 'forest', tier: 2, studyNeed: 180,
+    count: 5, speed: 1.0, fleeSpeed: 3, wary: 3.5, studyR: 3.5,
+    needSmall: true, tiny: 0.35, flutter: true, nocturnal: true,
+    traits: 'Lantern Glow: drift on the air and light the dark around you. Flash [F] dazes everything close.',
+    hint: 'The dancing lights of Mushroom Hollow — tiny, and only out after dark.',
+    ingredient: 'morning dew',
+    place: (s, x, z) => G.hollowC && Math.hypot(x - G.hollowC.x, z - G.hollowC.z) < 26 && s.h > 0.8
+  },
+  boar: {
+    name: 'Boar', emoji: '🐗', zone: 'forest', tier: 2, studyNeed: 190,
+    count: 3, speed: 2.4, fleeSpeed: 0, wary: 0, studyR: 8,
+    aggressive: { hp: 7, dmg: 2, aggroR: 5, atkR: 1.7, atkCd: 1.2 },
+    traits: 'Tusk Rush [F]: a thundering charge that bowls foes over. Thick hide.',
+    hint: 'Roots through the Wildwood undergrowth. Short temper, shorter fuse.',
+    ingredient: 'boar shank',
+    place: s => s.biome === 'forest' && s.h > 1.0
+  },
+  heron: {
+    name: 'Heron', emoji: '🪶', zone: 'lake', tier: 2, studyNeed: 150,
+    count: 3, speed: 0.9, fleeSpeed: 7, wary: 9, studyR: 8,
+    traits: 'Stilt Legs: wade shallow water without swimming. Spear Beak [F]: one precise, heavy strike.',
+    hint: 'Stands statue-still in the Great Lake\'s shallows, waiting.',
+    ingredient: 'reed fish',
+    place: (s, x, z) => G.lakeD(x, z) < 56 && s.h > -0.8 && s.h < 0.25
   },
   cobra: {
     name: 'Cobra', emoji: '🐍', zone: 'desert', tier: 2, studyNeed: 170,
@@ -201,7 +260,8 @@ const SCALES = {
   fox: 0.8, rabbit: 0.55, deer: 1, tortoise: 0.6, otter: 0.6,
   cobra: 0.7, monkey: 0.65, goat: 0.95, armadillo: 0.6, owl: 0.55,
   wolf: 0.95, eagle: 0.7, bear: 1.15, badger: 0.7,
-  duck: 0.5, koi: 0.55, beaver: 0.65
+  duck: 0.5, koi: 0.55, beaver: 0.65,
+  crab: 0.45, butterfly: 0.5, raccoon: 0.7, seagull: 0.5, firefly: 0.45, boar: 0.9, heron: 0.75
 };
 G.SPECIES_SCALE = SCALES;
 
@@ -517,6 +577,7 @@ class Animal {
       y = Math.min(G.WATER_Y - 1.2, ground + 0.8 + Math.sin(this.bob * 1.5) * 0.6);
       this.mesh.rotation.x = Math.sin(this.bob * 3) * 0.12;
     }
+    if (this.sp.flutter) y = ground + 0.7 + Math.sin(this.bob * 2.2) * 0.35; // airborne drift
     if (this.sp.hop && this.state !== 'idle') y += Math.abs(Math.sin(this.bob * 6)) * 0.5;
     else if (this.state !== 'idle')
       y += Math.abs(Math.sin(this.bob * 10)) * 0.06;

@@ -338,6 +338,108 @@ B.beaver = function () {
   return g;
 };
 
+// ----- grove, hollow & coast dwellers -----
+B.butterfly = function () {
+  const g = new THREE.Group();
+  G.part(g, S_(), 0x3a3f4a, 0, 0.3, 0, 0.07, 0.06, 0.2);                        // body
+  G.part(g, S_(), 0x3a3f4a, 0, 0.34, 0.18, 0.06);                               // head
+  const w1 = G.part(g, S_(), 0x7ab5f2, 0.28, 0.36, 0, 0.3, 0.02, 0.22);         // wings
+  const w2 = G.part(g, S_(), 0x7ab5f2, -0.28, 0.36, 0, 0.3, 0.02, 0.22);
+  w1.rotation.z = 0.35; w2.rotation.z = -0.35;
+  G.part(g, S_(), 0xf2a9c4, 0.3, 0.38, 0.12, 0.1, 0.015, 0.08);                 // wing spots
+  G.part(g, S_(), 0xf2a9c4, -0.3, 0.38, 0.12, 0.1, 0.015, 0.08);
+  return g;
+};
+B.raccoon = function () {
+  const g = new THREE.Group();
+  G.part(g, S_(), 0x8f8a82, 0, 0.4, 0, 0.3, 0.28, 0.48);                        // body
+  const head = G.part(g, S_(), 0x8f8a82, 0, 0.62, 0.45, 0.24);
+  G.part(head, S_(), 0x2c2c30, 0, 0.15, 0.55, 0.85, 0.4, 0.55);                 // bandit mask!
+  G.part(head, S_(), 0xf5f2e3, 0, -0.25, 0.6, 0.6, 0.4, 0.5);                   // muzzle
+  G.part(head, S_(), 0xf5f2e3, 0.42, 0.2, 0.7, 0.16);                           // eye rings
+  G.part(head, S_(), 0xf5f2e3, -0.42, 0.2, 0.7, 0.16);
+  G.part(head, S_(), 0x1c1c1c, 0.42, 0.2, 0.85, 0.1);
+  G.part(head, S_(), 0x1c1c1c, -0.42, 0.2, 0.85, 0.1);
+  G.part(head, K_(), 0x5a5a5e, 0.5, 0.85, -0.1, 0.25, 0.5, 0.25);               // ears
+  G.part(head, K_(), 0x5a5a5e, -0.5, 0.85, -0.1, 0.25, 0.5, 0.25);
+  // ringed tail
+  for (let i = 0; i < 4; i++)
+    G.part(g, S_(), i % 2 ? 0x2c2c30 : 0x8f8a82, 0, 0.42 + i * 0.09, -0.5 - i * 0.12, 0.12 - i * 0.012);
+  quadLegs(g, 0x5a5a5e, 0.18, 0.28, 0.07, 0.3, 0.15);
+  return g;
+};
+B.firefly = function () {
+  const g = new THREE.Group();
+  G.part(g, S_(), 0x3d3d40, 0, 0.3, 0.06, 0.09, 0.08, 0.13);                    // thorax
+  G.part(g, S_(), 0x2c2c30, 0, 0.34, 0.2, 0.07);                                // head
+  G.part(g, S_(), 0xd8f2a0, 0, 0.27, -0.12, 0.09, 0.09, 0.14, { emissive: 0x6a8a1d }); // glowing abdomen!
+  const w1 = G.part(g, S_(), 0xc9ccd1, 0.12, 0.4, 0, 0.14, 0.015, 0.1);
+  const w2 = G.part(g, S_(), 0xc9ccd1, -0.12, 0.4, 0, 0.14, 0.015, 0.1);
+  w1.rotation.z = 0.4; w2.rotation.z = -0.4;
+  return g;
+};
+B.boar = function () {
+  const g = new THREE.Group();
+  G.part(g, S_(), 0x5d4a33, 0, 0.6, 0, 0.45, 0.42, 0.65);                       // barrel body
+  G.part(g, S_(), 0x6f5a40, 0, 0.85, 0.1, 0.3, 0.2, 0.5);                       // bristly back
+  const head = G.part(g, S_(), 0x5d4a33, 0, 0.62, 0.62, 0.3, 0.28, 0.3);
+  G.part(head, S_(), 0x8a6a48, 0, -0.2, 0.7, 0.55, 0.5, 0.55);                  // snout
+  G.part(head, S_(), 0x3d2c1c, 0, -0.2, 1.0, 0.3, 0.25, 0.15);                  // snout tip
+  G.part(head, S_(), 0x1c1c1c, 0.4, 0.15, 0.7, 0.11);
+  G.part(head, S_(), 0x1c1c1c, -0.4, 0.15, 0.7, 0.11);
+  G.part(head, K_(), 0xf5f2e3, 0.4, -0.35, 0.65, 0.12, 0.35, 0.12).rotation.x = 1.1;  // tusks!
+  G.part(head, K_(), 0xf5f2e3, -0.4, -0.35, 0.65, 0.12, 0.35, 0.12).rotation.x = 1.1;
+  G.part(head, S_(), 0x4a3828, 0.4, 0.55, -0.05, 0.16, 0.2, 0.1);               // ears
+  G.part(head, S_(), 0x4a3828, -0.4, 0.55, -0.05, 0.16, 0.2, 0.1);
+  quadLegs(g, 0x4a3828, 0.26, 0.4, 0.09, 0.45, 0.22);
+  return g;
+};
+B.crab = function () {
+  const g = new THREE.Group();
+  G.part(g, S_(), 0xd95f3c, 0, 0.22, 0, 0.34, 0.18, 0.26);                      // carapace
+  const e1 = G.part(g, C_(), 0xd95f3c, 0.12, 0.42, 0.14, 0.03, 0.18, 0.03);     // eye stalks
+  const e2 = G.part(g, C_(), 0xd95f3c, -0.12, 0.42, 0.14, 0.03, 0.18, 0.03);
+  G.part(e1, S_(), 0x1c1c1c, 0, 0.6, 0, 2.2);
+  G.part(e2, S_(), 0x1c1c1c, 0, 0.6, 0, 2.2);
+  for (const sx of [-0.34, 0.34]) {                                              // big claws
+    const arm = G.part(g, S_(), 0xb54a2c, sx, 0.2, 0.22, 0.12, 0.1, 0.16);
+    G.part(arm, S_(), 0xb54a2c, sx > 0 ? 0.5 : -0.5, 0.15, 0.9, 1.1, 0.9, 1.0);
+  }
+  for (const sx of [-0.3, 0.3]) for (let i = 0; i < 3; i++)                      // legs
+    G.part(g, C_(), 0xb54a2c, sx, 0.1, -0.12 + i * 0.12, 0.03, 0.22, 0.03).rotation.z = sx > 0 ? -0.7 : 0.7;
+  return g;
+};
+B.seagull = function () {
+  const g = new THREE.Group();
+  G.part(g, S_(), 0xf5f2e3, 0, 0.4, 0, 0.24, 0.26, 0.4);                        // body
+  const head = G.part(g, S_(), 0xf5f2e3, 0, 0.68, 0.3, 0.17);
+  G.part(head, S_(), 0x1c1c1c, 0.4, 0.2, 0.7, 0.13);
+  G.part(head, S_(), 0x1c1c1c, -0.4, 0.2, 0.7, 0.13);
+  G.part(head, K_(), 0xf2b035, 0, -0.05, 0.9, 0.16, 0.45, 0.16).rotation.x = 1.75; // beak
+  G.part(g, S_(), 0x9fa8b0, 0.26, 0.45, -0.08, 0.08, 0.2, 0.32);                // grey wings
+  G.part(g, S_(), 0x9fa8b0, -0.26, 0.45, -0.08, 0.08, 0.2, 0.32);
+  G.part(g, S_(), 0x3d3d40, 0, 0.42, -0.42, 0.14, 0.06, 0.16);                  // black tail tip
+  G.part(g, C_(), 0xf2b035, 0.08, 0.12, 0.05, 0.03, 0.22, 0.03);                // legs
+  G.part(g, C_(), 0xf2b035, -0.08, 0.12, 0.05, 0.03, 0.22, 0.03);
+  return g;
+};
+B.heron = function () {
+  const g = new THREE.Group();
+  G.part(g, C_(), 0xf2b035, 0.1, 0.5, 0, 0.03, 1.0, 0.03);                      // stilt legs
+  G.part(g, C_(), 0xf2b035, -0.1, 0.55, 0.05, 0.03, 1.0, 0.03);
+  G.part(g, S_(), 0x9fb5c9, 0, 1.15, 0, 0.26, 0.3, 0.42);                       // slate body
+  G.part(g, S_(), 0x8195a8, 0.2, 1.25, -0.1, 0.1, 0.22, 0.3);                   // folded wings
+  G.part(g, S_(), 0x8195a8, -0.2, 1.25, -0.1, 0.1, 0.22, 0.3);
+  const neck = G.part(g, C_(), 0xe8e8e0, 0, 1.7, 0.25, 0.06, 0.85, 0.06);       // long S-neck
+  neck.rotation.x = -0.3;
+  const head = G.part(g, S_(), 0xe8e8e0, 0, 2.15, 0.4, 0.14, 0.13, 0.18);
+  G.part(head, S_(), 0x1c1c1c, 0.4, 0.2, 0.5, 0.15);
+  G.part(head, S_(), 0x1c1c1c, -0.4, 0.2, 0.5, 0.15);
+  G.part(head, K_(), 0xf2b035, 0, -0.1, 1.3, 0.25, 2.2, 0.2).rotation.x = 1.65; // dagger beak
+  G.part(head, S_(), 0x2c2c30, 0, 0.45, -0.3, 0.3, 0.12, 0.5);                  // black crest
+  return g;
+};
+
 // ----- shared villager builder (guests / NPCs / poachers) -----
 // opts: {shirt, skin, hat:'cap'|'safari'|'ranger'|'chef'|'flower'|'goggles'|null,
 //        hatCol, rifle, net, apron, hair}

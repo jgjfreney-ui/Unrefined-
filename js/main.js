@@ -128,6 +128,13 @@ G.fx = (() => {
       m.scale.setScalar(0.35);
       items.push({ m, life: 0.9, max: 0.9, vy: 0, grow: 2.2 });
     },
+    spark(pos) { // firefly glimmer drifting upward
+      const m = spawn(puffGeo, 0xd8f2a0, 0.9);
+      m.material.emissive = new THREE.Color(0x6a8a1d);
+      m.position.set(pos.x + (Math.random() - 0.5) * 16, pos.y + 0.4 + Math.random() * 2.5, pos.z + (Math.random() - 0.5) * 16);
+      m.scale.setScalar(0.06);
+      items.push({ m, life: 2.8, max: 2.8, vy: 0.35, grow: 0, vx: (Math.random() - 0.5) * 0.8, vz: (Math.random() - 0.5) * 0.8 });
+    },
     petal(pos) { // drifting cherry-blossom petal
       const m = spawn(puffGeo, 0xf2a9c4, 0.9);
       m.position.set(pos.x + (Math.random() - 0.5) * 14, pos.y + 4 + Math.random() * 5, pos.z + (Math.random() - 0.5) * 14);
@@ -469,13 +476,18 @@ function frame(now) {
       G.fx.petal(P.pos);
     }
     // region discoveries
-    if (!G.meta.seenLake && G.lakeD(P.pos.x, P.pos.z) < 52) {
-      G.meta.seenLake = true; G.save();
-      G.ui.bigBanner('🌊 The Great Lake', 'Ducks dabble on the surface... and something glides through the kelp far below.');
+    G.meta.seenRegions = G.meta.seenRegions || {};
+    for (const rg of G.REGIONS) {
+      if (!rg.discover || G.meta.seenRegions[rg.discover]) continue;
+      if (Math.hypot(P.pos.x - rg.x, P.pos.z - rg.z) < rg.r) {
+        G.meta.seenRegions[rg.discover] = true;
+        G.save();
+        G.ui.bigBanner(rg.emoji + ' ' + rg.name, rg.blurb);
+      }
     }
-    if (!G.meta.seenGrove && G.groveC && Math.hypot(P.pos.x - G.groveC.x, P.pos.z - G.groveC.z) < 20) {
-      G.meta.seenGrove = true; G.save();
-      G.ui.bigBanner('🌸 The Blossom Grove', 'Pink petals ride the wind here. Cheryl would love a few of these ferns.');
+    // firefly sparks dance in the Hollow after dark
+    if (G.isNight && G.hollowC && Math.hypot(P.pos.x - G.hollowC.x, P.pos.z - G.hollowC.z) < 26 && Math.random() < dt * 6) {
+      G.fx.spark(P.pos);
     }
 
     // HUD

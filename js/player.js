@@ -18,6 +18,13 @@ G.MASK_STATS = {
   duck:     { speed: 5.0, sprint: 7.5, jump: 7,    slope: 1.7, swim: 6,   breath: 120, stamDrain: 10, dmg: 1.5, atkCd: 0.35, range: 1.7, kb: 0.8, def: 1,    dive: true, underSight: true },
   beaver:   { speed: 5.0, sprint: 7.5, jump: 7,    slope: 1.6, swim: 7,   breath: 80,  stamDrain: 10, dmg: 2.5, atkCd: 0.9,  range: 2.0, kb: 5,   def: 0.85, dive: true },
   koi:      { speed: 2.2, sprint: 3,   jump: 4.5,  slope: 1.4, swim: 11,  breath: 9999,stamDrain: 12, dmg: 1,   atkCd: 0.5,  range: 1.6, kb: 0.5, def: 0.95, dive: true, underSight: true },
+  crab:     { speed: 4.0, sprint: 6,   jump: 6,    slope: 1.6, swim: 2.5, breath: 90,  stamDrain: 12, dmg: 3,   atkCd: 1.1,  range: 1.9, kb: 2,   def: 0.6,  dive: true },
+  butterfly:{ speed: 4.5, sprint: 6.5, jump: 10,   slope: 1.7, swim: 1.2, breath: 6,   stamDrain: 8,  dmg: 1,   atkCd: 0.8,  range: 1.6, kb: 0.5, def: 1,    small: true, glide: 0.5, spit: true },
+  raccoon:  { speed: 6.5, sprint: 9.5, jump: 9,    slope: 2.0, swim: 2.2, breath: 10,  stamDrain: 9,  dmg: 2,   atkCd: 0.4,  range: 1.8, kb: 1,   def: 1,    steal: true },
+  seagull:  { speed: 5.5, sprint: 8,   jump: 9.5,  slope: 1.7, swim: 2.5, breath: 12,  stamDrain: 10, dmg: 2,   atkCd: 0.6,  range: 1.8, kb: 1,   def: 1,    glide: 0.7, dive: true },
+  firefly:  { speed: 4.0, sprint: 6,   jump: 9,    slope: 1.7, swim: 1.2, breath: 6,   stamDrain: 8,  dmg: 0.5, atkCd: 1.2,  range: 1.4, kb: 0.3, def: 1,    small: true, glide: 0.45, flash: true, nightVision: true },
+  boar:     { speed: 6.0, sprint: 11,  jump: 7.5,  slope: 1.7, swim: 2,   breath: 10,  stamDrain: 6,  dmg: 3,   atkCd: 1.0,  range: 2.1, kb: 6,   def: 0.75, dash: true },
+  heron:    { speed: 5.5, sprint: 8,   jump: 9,    slope: 1.7, swim: 3,   breath: 30,  stamDrain: 10, dmg: 4,   atkCd: 1.0,  range: 2.6, kb: 1.5, def: 1,    stilts: true },
   mouse:    { speed: 4.2, sprint: 6.5, jump: 6,    slope: 1.7, swim: 1.4, breath: 6,   stamDrain: 10, dmg: 0.5, atkCd: 0.3,  range: 1.2, kb: 0.4, def: 0.85, small: true },
   tortoise: { speed: 4.0, sprint: 5.5, jump: 6.5,  slope: 1.5, swim: 3.0, breath: 60,  stamDrain: 12, dmg: 2.5, atkCd: 1.2,  range: 1.9, kb: 3,   def: 0.6,  block: true },
   otter:    { speed: 5.5, sprint: 8.5, jump: 8,    slope: 1.7, swim: 9,   breath: 60,  stamDrain: 10, dmg: 1.5, atkCd: 0.35, range: 1.7, kb: 0.6, def: 1 },
@@ -165,6 +172,48 @@ function buildMaskGear(head) {
     G.part(g, S, 0xd97a3c, 0.85, 0.1, 0, 0.14, 0.35, 0.3);                             // gill fins
     G.part(g, S, 0xd97a3c, -0.85, 0.1, 0, 0.14, 0.35, 0.3);
     masks.koi = g; }
+  { const g = new THREE.Group(); dome(g, 0xd95f3c);                                    // crab
+    const s1 = G.part(g, C, 0xd95f3c, 0.4, 1.05, 0.2, 0.06, 0.5, 0.06);
+    const s2 = G.part(g, C, 0xd95f3c, -0.4, 1.05, 0.2, 0.06, 0.5, 0.06);
+    G.part(s1, S, 0x1c1c1c, 0, 0.6, 0, 2.4);                                           // eye stalks
+    G.part(s2, S, 0x1c1c1c, 0, 0.6, 0, 2.4);
+    masks.crab = g; }
+  { const g = new THREE.Group(); dome(g, 0x7ab5f2);                                    // butterfly
+    const w1 = G.part(g, S, 0x7ab5f2, 0.85, 0.6, -0.2, 0.75, 0.05, 0.55); w1.rotation.z = 0.5;
+    const w2 = G.part(g, S, 0x7ab5f2, -0.85, 0.6, -0.2, 0.75, 0.05, 0.55); w2.rotation.z = -0.5;
+    G.part(w1, S, 0xf2a9c4, 0.3, 0.5, 0.2, 0.35, 0.5, 0.35);
+    G.part(w2, S, 0xf2a9c4, -0.3, 0.5, 0.2, 0.35, 0.5, 0.35);
+    G.part(g, C, 0x2c2c30, 0.2, 1.15, 0.3, 0.03, 0.5, 0.03).rotation.x = -0.5;         // antennae
+    G.part(g, C, 0x2c2c30, -0.2, 1.15, 0.3, 0.03, 0.5, 0.03).rotation.x = -0.5;
+    masks.butterfly = g; }
+  { const g = new THREE.Group(); dome(g, 0x8f8a82);                                    // raccoon
+    G.part(g, S, 0x2c2c30, 0, 0.1, 0.55, 0.85, 0.4, 0.55);                             // bandit band
+    G.part(g, S, 0xf5f2e3, 0.35, 0.12, 0.85, 0.18);
+    G.part(g, S, 0xf5f2e3, -0.35, 0.12, 0.85, 0.18);
+    G.part(g, K, 0x5a5a5e, 0.5, 1.0, -0.1, 0.26, 0.55, 0.26);
+    G.part(g, K, 0x5a5a5e, -0.5, 1.0, -0.1, 0.26, 0.55, 0.26);
+    masks.raccoon = g; }
+  { const g = new THREE.Group(); dome(g, 0xf5f2e3);                                    // seagull
+    G.part(g, K, 0xf2b035, 0, -0.1, 0.95, 0.2, 0.5, 0.2).rotation.x = 1.75;
+    G.part(g, S, 0x9fa8b0, 0, 0.75, -0.35, 0.85, 0.45, 0.7);
+    masks.seagull = g; }
+  { const g = new THREE.Group(); dome(g, 0x3d3d40);                                    // firefly
+    G.part(g, S, 0xd8f2a0, 0, 0.65, -0.55, 0.55, 0.5, 0.45, { emissive: 0x6a8a1d });   // glow bulb
+    G.part(g, C, 0x2c2c30, 0.2, 1.1, 0.3, 0.03, 0.5, 0.03).rotation.x = -0.4;
+    G.part(g, C, 0x2c2c30, -0.2, 1.1, 0.3, 0.03, 0.5, 0.03).rotation.x = -0.4;
+    masks.firefly = g; }
+  { const g = new THREE.Group(); dome(g, 0x5d4a33);                                    // boar
+    G.part(g, S, 0x8a6a48, 0, -0.15, 0.85, 0.5, 0.4, 0.4);                             // snout
+    G.part(g, S, 0x3d2c1c, 0, -0.15, 1.15, 0.25, 0.2, 0.12);
+    G.part(g, K, 0xf5f2e3, 0.4, -0.3, 0.8, 0.13, 0.4, 0.13).rotation.x = 1.1;          // tusks
+    G.part(g, K, 0xf5f2e3, -0.4, -0.3, 0.8, 0.13, 0.4, 0.13).rotation.x = 1.1;
+    G.part(g, S, 0x4a3828, 0.5, 0.85, -0.05, 0.2, 0.28, 0.12);
+    G.part(g, S, 0x4a3828, -0.5, 0.85, -0.05, 0.2, 0.28, 0.12);
+    masks.boar = g; }
+  { const g = new THREE.Group(); dome(g, 0xe8e8e0);                                    // heron
+    G.part(g, K, 0xf2b035, 0, -0.05, 1.15, 0.18, 1.6, 0.15).rotation.x = 1.65;         // dagger beak
+    G.part(g, S, 0x2c2c30, 0, 0.75, -0.4, 0.3, 0.14, 0.6);                             // crest
+    masks.heron = g; }
   for (const k in masks) { masks[k].visible = false; head.add(masks[k]); }
   return masks;
 }
@@ -177,7 +226,9 @@ const KIT_TINT = {
   croc: 0x5d8c46, mouse: 0xa8a29c, tortoise: 0x6b8f4e, otter: 0x7a5a3c, cobra: 0x8fa04c,
   monkey: 0x8a6a48, goat: 0xd8d2c8, armadillo: 0xb0988a, owl: 0x8a6f52, scorpion: 0x8c3b26,
   wolf: 0x6f7278, eagle: 0x6b4e33, bear: 0x6f4e33, badger: 0x3d3d40,
-  duck: 0x2c7a4a, beaver: 0x6b4a2c, koi: 0xe8863c
+  duck: 0x2c7a4a, beaver: 0x6b4a2c, koi: 0xe8863c,
+  crab: 0xd95f3c, butterfly: 0x7ab5f2, raccoon: 0x8f8a82, seagull: 0xf5f2e3,
+  firefly: 0x3d3d40, boar: 0x5d4a33, heron: 0x9fb5c9
 };
 function buildBodyKits(body) {
   const S = G.geo.sphere, C = G.geo.cyl, K = G.geo.cone, X = G.geo.box;
@@ -240,6 +291,31 @@ function buildBodyKits(body) {
     const t = G.part(g, K, 0xe8863c, 0, 0.45, -0.5, 0.3, 0.5, 0.06); t.rotation.x = Math.PI / 2;
     G.part(g, S, 0xd97a3c, 0.42, 0.6, 0, 0.08, 0.24, 0.2);
     G.part(g, S, 0xd97a3c, -0.42, 0.6, 0, 0.08, 0.24, 0.2); }
+  { const g = kit('crab');
+    G.part(g, S, 0xb54a2c, 0.48, 0.62, 0.15, 0.16, 0.12, 0.2);                 // pincer gloves
+    G.part(g, S, 0xb54a2c, -0.48, 0.62, 0.15, 0.16, 0.12, 0.2);
+    G.part(g, S, 0xb54a2c, 0, 0.68, -0.3, 0.3, 0.3, 0.16); }                   // shell back
+  { const g = kit('butterfly');
+    const w1 = G.part(g, S, 0x7ab5f2, 0.5, 0.7, -0.28, 0.42, 0.04, 0.3); w1.rotation.z = 0.45;
+    const w2 = G.part(g, S, 0x7ab5f2, -0.5, 0.7, -0.28, 0.42, 0.04, 0.3); w2.rotation.z = -0.45; }
+  { const g = kit('raccoon');
+    for (let i = 0; i < 3; i++)
+      G.part(g, S, i % 2 ? 0x2c2c30 : 0x8f8a82, 0, 0.42 + i * 0.1, -0.42 - i * 0.1, 0.11 - i * 0.01); }
+  { const g = kit('seagull');
+    const w1 = G.part(g, S, 0x9fa8b0, 0.45, 0.66, -0.08, 0.34, 0.06, 0.24); w1.rotation.z = 0.3;
+    const w2 = G.part(g, S, 0x9fa8b0, -0.45, 0.66, -0.08, 0.34, 0.06, 0.24); w2.rotation.z = -0.3;
+    G.part(g, S, 0x3d3d40, 0, 0.4, -0.36, 0.16, 0.06, 0.2); }
+  { const g = kit('firefly');
+    G.part(g, S, 0xd8f2a0, 0, 0.5, -0.4, 0.22, 0.26, 0.22, { emissive: 0x6a8a1d });
+    const w1 = G.part(g, S, 0xc9ccd1, 0.38, 0.75, -0.1, 0.28, 0.03, 0.18); w1.rotation.z = 0.4;
+    const w2 = G.part(g, S, 0xc9ccd1, -0.38, 0.75, -0.1, 0.28, 0.03, 0.18); w2.rotation.z = -0.4; }
+  { const g = kit('boar');
+    G.part(g, S, 0x6f5a40, 0, 0.8, -0.15, 0.24, 0.16, 0.4);                    // bristle ridge
+    G.part(g, C, 0x8a6a48, 0, 0.4, -0.4, 0.03, 0.25, 0.03).rotation.x = 0.8; } // curly tail-ish
+  { const g = kit('heron');
+    const w1 = G.part(g, S, 0x8195a8, 0.42, 0.66, -0.1, 0.12, 0.3, 0.26);
+    const w2 = G.part(g, S, 0x8195a8, -0.42, 0.66, -0.1, 0.12, 0.3, 0.26);
+    G.part(g, S, 0xe8e8e0, 0, 0.42, -0.34, 0.16, 0.08, 0.24); }
   return kits;
 }
 
@@ -419,6 +495,7 @@ G.updatePlayer = function (P, input, dt, camYaw) {
   const depth = G.WATER_Y - ground;
   const wasSwimming = P.swimming;
   P.swimming = depth > 0.5 * sizeMul && P.pos.y < G.WATER_Y + 0.4;
+  if (st.stilts && depth < 1.3) P.swimming = false; // heron legs wade right through
   if (P.swimming && !wasSwimming) G.sfx.splash();
 
   // --- speed ---

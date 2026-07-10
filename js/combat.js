@@ -65,6 +65,21 @@ G.playerAttack = function (P, st) {
   G.sfx.thock();
   const dmgMul = (G.buffs && G.buffs.atkMul) || 1;
 
+  // firefly flash: dazes everything close
+  if (st.flash) {
+    G.fx.burst(P.pos, 0xd8f2a0);
+    G.audio.tone(1400, 0.3, 'sine', 0.1, 400);
+    for (const a of G.animals) {
+      if (!a.alive || a.caged) continue;
+      if (Math.hypot(a.pos.x - P.pos.x, a.pos.z - P.pos.z) < 4) a.stun = Math.max(a.stun, 3.5);
+    }
+    for (const p of G.poachers) {
+      if (p.state === 'ko') continue;
+      if (Math.hypot(p.pos.x - P.pos.x, p.pos.z - P.pos.z) < 4) p.frighten(3);
+    }
+    return;
+  }
+
   // ranged forms fire instead of swinging
   if (st.spit || st.fruit) {
     const fx = Math.sin(P.body.rotation.y), fz = Math.cos(P.body.rotation.y);
@@ -128,6 +143,7 @@ G.playerAttack = function (P, st) {
       if (Math.hypot(p.pos.x - hx, p.pos.z - hz) < reach + 0.7) {
         const dx = p.pos.x - P.pos.x, dz = p.pos.z - P.pos.z, d = Math.hypot(dx, dz) || 1;
         G.damagePoacher(p, st.dmg * dmgMul, { x: dx / d, z: dz / d }, st.kb);
+        if (st.steal) { G.addCoins(2, p.pos); G.toast('🦝 Pickpocketed 2 coins!', 1600); }
       }
     }
   });

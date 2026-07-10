@@ -291,7 +291,7 @@ const RECIPES = [
   { id: 'gumbo', name: '🥘 Swamp Gumbo', cost: 2, desc: 'speed +20% & breath ×2 for 3 minutes', any: true,
     eat: () => { G.buffs.speedMul = 1.2; G.buffs.breathMul = 2; G.buffs.timer = Math.max(G.buffs.timer, 180); } }
 ];
-const PREDATOR_ING = ['wolf', 'bear', 'badger', 'croc', 'cobra', 'fox'];
+const PREDATOR_ING = ['wolf', 'bear', 'badger', 'croc', 'cobra', 'fox', 'boar'];
 function ingCount(predOnly) {
   let n = 0;
   for (const k in (G.meta.ingredients || {})) {
