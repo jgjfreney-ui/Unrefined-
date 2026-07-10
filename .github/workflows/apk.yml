@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches: [main, master, claude/animal-mask-roguelike-bse3yr]
     paths: ['index.html', 'js/**', 'lib/**', 'icons/**', 'manifest.webmanifest', 'sw.js', '.github/workflows/apk.yml']
 
 jobs:
