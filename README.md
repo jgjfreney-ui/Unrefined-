@@ -73,10 +73,11 @@ swimmers, so study them from dry land first.
   jump / attack / interact / mask dial / crouch / howl / notebook.
 - **Install as an app (PWA):** open the game's URL on your Pixel (or any phone) in Chrome →
   menu → **Add to Home screen**. It installs with an icon and runs fullscreen & offline.
-- **Android APK:** every push builds a debug APK via GitHub Actions
-  (`.github/workflows/apk.yml`, Capacitor). Grab it from the **Actions** tab → latest
-  *Build Android APK* run → **Artifacts → `wildmask-debug-apk`**, then install the `.apk`
-  on your phone (enable "install unknown apps" for your browser/files app).
+- **Android APK — direct install:** grab **`wildmask.apk`** from the
+  [**play release**](https://github.com/jgjfreney-ui/Unrefined-/releases/tag/play)
+  (auto-rebuilt on every push). Download it on your phone, tap it, allow
+  "install unknown apps" — done. No extraction, installs like a normal app, and updates
+  keep the same signature so they install right over the old version.
 - **Hosting:** `.github/workflows/pages.yml` deploys the repo to GitHub Pages so you have a
   URL to open and install from.
 

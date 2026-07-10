@@ -9,34 +9,68 @@ G.RADIUS = 245;       // hard travel limit
 G.tentPos = new THREE.Vector3(0, 0, 0);
 
 // -------- terrain sampling (analytic, shared by render + gameplay) --------
+// The island is SECTORED: camp sits in a central plains ring, and each biome
+// is a region you must journey to — forest to the north, desert to the south,
+// swamp to the west, wild plains east. Rocky border ridges divide the sectors;
+// cross them at mountain passes, hop them as the frog/goat/scorpion, or swim
+// around the coast where the ridges sink into the sea.
+const wrapA = a => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
 G.sample = function (x, z) {
   const s = G.seed;
   const raw = (G.fbm(x * 0.013, z * 0.013, 4, s) - 0.35) * 16;
-  const t = G.fbm(x * 0.006 + 100, z * 0.006 + 100, 3, s + 900);   // temperature
-  const m = G.fbm(x * 0.007 + 200, z * 0.007 - 200, 3, s + 1700);  // moisture
-  const fo = G.fbm(x * 0.008 - 300, z * 0.008 + 300, 3, s + 2500); // forest density
-  // biome height targets, blended smoothly so borders aren't cliffs
-  const dF = G.smoothstep(0.56, 0.64, t);                          // desert factor
-  const sF = G.smoothstep(0.56, 0.64, m) * (1 - dF);               // swamp factor
-  const fF = G.smoothstep(0.52, 0.60, fo) * (1 - dF) * (1 - sF);   // forest factor
+  const r = Math.hypot(x, z);
+
+  // --- warped angular sectors ---
+  const warp = (G.fbm(x * 0.005 + 77, z * 0.005 - 77, 3, s + 400) - 0.5) * 1.1;
+  const wa = wrapA(Math.atan2(z, x) + warp);
+  const gate = G.smoothstep(36, 56, r);                            // hub ring stays gentle plains
+  const HALF = Math.PI / 4;
+  const sect = c => {
+    const d = Math.abs(wrapA(wa - c));
+    return (1 - G.smoothstep(HALF - 0.22, HALF + 0.22, d)) * gate;
+  };
+  let fF = sect(Math.PI / 2);                                      // forest — north
+  let dF = sect(-Math.PI / 2);                                     // desert — south
+  let sF = sect(Math.PI);                                          // swamp — west
+  const tot = fF + dF + sF;
+  if (tot > 1) { fF /= tot; dF /= tot; sF /= tot; }
+
+  // --- per-biome height targets ---
   let hd = raw * 0.45 + 2.4;
   const mm = G.fbm(x * 0.02 - 50, z * 0.02 + 50, 2, s + 300);
-  if (mm > 0.575) hd += G.smoothstep(0.575, 0.595, mm) * 9;        // mesas (sheer walls, climb-only)
-  const hs = raw * 0.35 - 0.7;                                     // murky pools
+  if (mm > 0.545) hd += G.smoothstep(0.545, 0.565, mm) * 9;        // mesas (bigger now, climb-only)
+  const hs = raw * 0.35 - 1.1;                                     // deeper murky pools
   const hf = raw * 0.7 + 1.2;                                      // gentle forest floor
-  let h = raw * (1 - dF - sF) + hd * dF + hs * sF;
-  h = h * (1 - fF) + hf * fF;
-  let biome = dF > 0.5 ? 'desert' : (sF > 0.5 ? 'swamp' : (fF > 0.5 ? 'forest' : 'plains'));
-  if (biome === 'plains' && dF < 0.02 && sF < 0.02 && fF < 0.02 && h > 5.0) {
+  let h = raw * (1 - dF - sF - fF) + hd * dF + hs * sF + hf * fF;
+
+  // --- rocky border ridges with mountain passes ---
+  let ridge = 0;
+  if (r > 40) {
+    let bd = Math.PI;
+    for (const b of [HALF, 3 * HALF, -HALF, -3 * HALF])
+      bd = Math.min(bd, Math.abs(wrapA(wa - b)));
+    const bdArc = bd * Math.max(r, 30);                            // metres from the boundary line
+    const rg = G.smoothstep(48, 62, r) * (1 - G.smoothstep(180, 200, r));
+    const pass = G.smoothstep(0.56, 0.63, G.fbm(x * 0.025 + 900, z * 0.025, 2, s + 800));
+    ridge = (1 - G.smoothstep(3, 7.5, bdArc)) * rg * (1 - pass) * 7.5;
+    ridge *= G.smoothstep(0.3, 1.2, h);                            // ridges sink at the coast — swim around!
+    h += ridge;
+  }
+
+  // --- biome label ---
+  let biome = 'plains';
+  const mx = Math.max(fF, dF, sF);
+  if (mx > 0.5) biome = (mx === fF) ? 'forest' : (mx === dF ? 'desert' : 'swamp');
+  if (ridge > 2.5) biome = 'rock';
+  else if (biome === 'plains' && mx < 0.02 && h > 5.0) {
     biome = 'rock';
     h = 5.0 + Math.floor((h - 5.0) / 2.0) * 2.0;                   // terraces (frog hops)
   }
   // flatten the camp hub
-  const d = Math.hypot(x, z);
-  const f = 1 - G.smoothstep(26, 48, d);
+  const f = 1 - G.smoothstep(26, 48, r);
   if (f > 0) { h = h * (1 - f) + 1.6 * f; if (f > 0.55) biome = 'plains'; }
   // island falls into the ocean
-  if (d > 210) h -= (d - 210) * 0.18;
+  if (r > 210) h -= (r - 210) * 0.18;
   return { h: h, biome: biome };
 };
 G.heightAt = (x, z) => G.sample(x, z).h;

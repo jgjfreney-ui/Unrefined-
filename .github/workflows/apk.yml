@@ -6,6 +6,9 @@ on:
     branches: [main, master, claude/animal-mask-roguelike-bse3yr]
     paths: ['index.html', 'js/**', 'lib/**', 'icons/**', 'manifest.webmanifest', 'sw.js', '.github/workflows/apk.yml']
 
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -45,15 +48,33 @@ jobs:
         run: |
           sed -i 's/<activity/<activity android:screenOrientation="sensorLandscape"/' android/app/src/main/AndroidManifest.xml
 
-      - name: Build debug APK
+      - name: Use the repo's persistent signing key
+        # keeps the APK signature stable across builds so updates install in place
+        run: |
+          mkdir -p ~/.android
+          cp signing/debug.keystore ~/.android/debug.keystore
+
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../wildmask.apk
 
-      - name: Upload APK artifact
+      - name: Publish APK to the "play" release (direct tap-to-install download)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: play
+          name: 'Wildmask — playable build'
+          body: |
+            📱 **Install on Android:** download `wildmask.apk` below on your phone, open it,
+            and allow "install unknown apps" when prompted. No extraction needed.
+          make_latest: true
+          files: wildmask.apk
+
+      - name: Upload APK artifact (CI backup)
         uses: actions/upload-artifact@v4
         with:
-          name: wildmask-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: wildmask-apk
+          path: wildmask.apk
           retention-days: 30
